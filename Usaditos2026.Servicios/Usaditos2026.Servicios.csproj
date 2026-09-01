@@ -7,6 +7,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Usaditos2026.BD\Usaditos2026.BD.csproj" />
+    <ProjectReference Include="..\Usaditos2026.Repositorio\Usaditos2026.Repositorio.csproj" />
     <ProjectReference Include="..\Usaditos2026.Shared\Usaditos2026.Shared.csproj" />
   </ItemGroup>
 
