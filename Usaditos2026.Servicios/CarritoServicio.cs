@@ -26,12 +26,12 @@ namespace Usaditos2026.Servicios
             if (request.Cantidad <= 0)
                 throw new ArgumentException("La cantidad debe ser mayor a cero.");
 
-            // 3. El sistema verifica que el producto tenga stock disponible.
+            
             var producto = await _carritoRepositorio.ObtenerProductoAsync(request.ProductoId)
                 ?? throw new KeyNotFoundException("El producto no existe.");
 
             if (!producto.Activo || producto.StockDisponible < request.Cantidad)
-                // 3a. El producto no tiene stock disponible: se notifica al cliente.
+                
                 throw new StockInsuficienteException(
                     $"El producto '{producto.Nombre}' no tiene stock disponible.");
 
@@ -41,7 +41,7 @@ namespace Usaditos2026.Servicios
 
             if (itemExistente is not null)
             {
-                // El producto ya estaba en el carrito: se suma la cantidad (5a).
+               
                 var cantidadTotal = itemExistente.Cantidad + request.Cantidad;
                 if (producto.StockDisponible < cantidadTotal)
                     throw new StockInsuficienteException(
@@ -51,7 +51,7 @@ namespace Usaditos2026.Servicios
             }
             else
             {
-                // 4. El sistema agrega el producto al carrito y actualiza el total.
+                
                 var nuevoItem = new ItemCarrito
                 {
                     CarritoId = carrito.Id,
@@ -76,7 +76,7 @@ namespace Usaditos2026.Servicios
             if (item.Carrito.ClienteId != clienteId)
                 throw new UnauthorizedAccessException("El item no pertenece al carrito del cliente.");
 
-            // 7-8. El sistema elimina el producto y recalcula el total.
+            
             await _carritoRepositorio.EliminarItemAsync(item);
             await _carritoRepositorio.GuardarCambiosAsync();
 
@@ -99,7 +99,7 @@ namespace Usaditos2026.Servicios
                 throw new StockInsuficienteException(
                     $"No hay stock suficiente de '{item.Producto.Nombre}' para esa cantidad.");
 
-            // 5a. El sistema actualiza la cantidad y recalcula el total.
+            
             item.Cantidad = nuevaCantidad;
             await _carritoRepositorio.GuardarCambiosAsync();
 
@@ -111,7 +111,7 @@ namespace Usaditos2026.Servicios
         {
             var carrito = await ObtenerOCrearCarritoActivoAsync(clienteId);
 
-            // 7a. El cliente decide vaciar todo el carrito.
+            
             await _carritoRepositorio.EliminarTodosLosItemsAsync(carrito.Id);
             await _carritoRepositorio.GuardarCambiosAsync();
 
@@ -133,7 +133,7 @@ namespace Usaditos2026.Servicios
                 ClienteId = carrito.ClienteId,
                 Estado = carrito.Estado,
                 FechaCreacion = carrito.FechaCreacion,
-                // 6a. Si no hay items, se devuelve la lista vacía (el front muestra "carrito vacío").
+                
                 Items = (carrito.Items ?? new List<ItemCarrito>()).Select(i => new ItemCarritoDto
                 {
                     Id = i.Id,

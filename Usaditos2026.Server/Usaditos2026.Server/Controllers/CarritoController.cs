@@ -5,7 +5,7 @@ using Usaditos2026.Shared.Excepciones;
 
 namespace Usaditos2026.Server.Controllers
 {
-    // Caso de uso: Agregar y eliminar producto del carrito.
+   
     [ApiController]
     [Route("api/[controller]")]
     public class CarritoController : ControllerBase
@@ -17,8 +17,7 @@ namespace Usaditos2026.Server.Controllers
             _carritoServicio = carritoServicio;
         }
 
-        // GET api/carrito/{clienteId}
-        // 6. El cliente accede al carrito y visualiza el detalle de los productos seleccionados.
+       
         [HttpGet("{clienteId:int}")]
         public async Task<ActionResult<CarritoDto>> ObtenerCarrito(int clienteId)
         {
@@ -26,8 +25,7 @@ namespace Usaditos2026.Server.Controllers
             return Ok(carrito);
         }
 
-        // POST api/carrito/items
-        // 2-4. El cliente selecciona un producto y el sistema lo agrega si hay stock.
+        
         [HttpPost("items")]
         public async Task<ActionResult<CarritoDto>> AgregarProducto([FromBody] AgregarItemCarritoRequest request)
         {
@@ -38,7 +36,7 @@ namespace Usaditos2026.Server.Controllers
             }
             catch (StockInsuficienteException ex)
             {
-                // 3a. El sistema notifica al cliente que el producto no está disponible.
+                
                 return Conflict(new { mensaje = ex.Message });
             }
             catch (KeyNotFoundException ex)
@@ -51,8 +49,7 @@ namespace Usaditos2026.Server.Controllers
             }
         }
 
-        // PUT api/carrito/{clienteId}/items/{itemId}
-        // 5a. El cliente modifica la cantidad de un producto ya agregado.
+       
         [HttpPut("{clienteId:int}/items/{itemId:int}")]
         public async Task<ActionResult<CarritoDto>> ModificarCantidad(
             int clienteId, int itemId, [FromBody] ModificarCantidadRequest request)
@@ -80,8 +77,7 @@ namespace Usaditos2026.Server.Controllers
             }
         }
 
-        // DELETE api/carrito/{clienteId}/items/{itemId}
-        // 7-8. El cliente elimina un producto del carrito y el sistema recalcula el total.
+       
         [HttpDelete("{clienteId:int}/items/{itemId:int}")]
         public async Task<ActionResult<CarritoDto>> EliminarProducto(int clienteId, int itemId)
         {
@@ -100,8 +96,7 @@ namespace Usaditos2026.Server.Controllers
             }
         }
 
-        // DELETE api/carrito/{clienteId}
-        // 7a. El cliente decide vaciar todo el carrito.
+        
         [HttpDelete("{clienteId:int}")]
         public async Task<ActionResult<CarritoDto>> VaciarCarrito(int clienteId)
         {
