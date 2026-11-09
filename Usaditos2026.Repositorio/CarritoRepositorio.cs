@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Usaditos2026.BD.Datos;
 using Usaditos2026.BD.Datos.Entity;
 using Usaditos2026.Repositorio.Interfaces;
+using Usaditos2026.Shared.Constantes;
 
 namespace Usaditos2026.Repositorio
 {
@@ -19,7 +20,7 @@ namespace Usaditos2026.Repositorio
             return await _context.Carritos
                 .Include(c => c.Items)
                     .ThenInclude(i => i.Producto)
-                .Where(c => c.ClienteId == clienteId && c.Estado == "Activo")
+                .Where(c => c.ClienteId == clienteId && c.Estado == CarritoConstantes.EstadoActivo)
                 .FirstOrDefaultAsync();
         }
 
@@ -29,7 +30,7 @@ namespace Usaditos2026.Repositorio
             {
                 ClienteId = clienteId,
                 FechaCreacion = DateTime.UtcNow,
-                Estado = "Activo",
+                Estado = CarritoConstantes.EstadoActivo,
                 Items = new List<ItemCarrito>()
             };
 

@@ -39,6 +39,10 @@ namespace Usaditos2026.Server.Controllers
                 
                 return Conflict(new { mensaje = ex.Message });
             }
+            catch (LimiteUnidadesException ex)
+            {
+                return Conflict(new { mensaje = ex.Message });
+            }
             catch (KeyNotFoundException ex)
             {
                 return NotFound(new { mensaje = ex.Message });
@@ -63,13 +67,17 @@ namespace Usaditos2026.Server.Controllers
             {
                 return Conflict(new { mensaje = ex.Message });
             }
+            catch (LimiteUnidadesException ex)
+            {
+                return Conflict(new { mensaje = ex.Message });
+            }
             catch (KeyNotFoundException ex)
             {
                 return NotFound(new { mensaje = ex.Message });
             }
             catch (UnauthorizedAccessException ex)
             {
-                return Forbid(ex.Message);
+                return StatusCode(403, new { mensaje = ex.Message });
             }
             catch (ArgumentException ex)
             {
@@ -92,7 +100,7 @@ namespace Usaditos2026.Server.Controllers
             }
             catch (UnauthorizedAccessException ex)
             {
-                return Forbid(ex.Message);
+                return StatusCode(403, new { mensaje = ex.Message });
             }
         }
 

@@ -1,6 +1,7 @@
 using Usaditos2026.BD.Datos.Entity;
 using Usaditos2026.Repositorio.Interfaces;
 using Usaditos2026.Servicios.Interfaces;
+using Usaditos2026.Shared.Constantes;
 using Usaditos2026.Shared.DTOs;
 using Usaditos2026.Shared.Excepciones;
 
@@ -30,7 +31,7 @@ namespace Usaditos2026.Servicios
             var producto = await _carritoRepositorio.ObtenerProductoAsync(request.ProductoId)
                 ?? throw new KeyNotFoundException("El producto no existe.");
 
-            if (!producto.Activo || producto.StockDisponible < request.Cantidad)
+            if (!producto.Activo)
                 
                 throw new StockInsuficienteException(
                     $"El producto '{producto.Nombre}' no tiene stock disponible.");
@@ -38,15 +39,18 @@ namespace Usaditos2026.Servicios
             var carrito = await ObtenerOCrearCarritoActivoAsync(request.ClienteId);
 
             var itemExistente = await _carritoRepositorio.ObtenerItemAsync(carrito.Id, request.ProductoId);
+            var cantidadTotal = (itemExistente?.Cantidad ?? 0) + request.Cantidad;
+
+            if (cantidadTotal > CarritoConstantes.LimiteUnidadesPorProducto)
+                throw new LimiteUnidadesException(
+                    $"Solo se permiten hasta {CarritoConstantes.LimiteUnidadesPorProducto} unidades del producto '{producto.Nombre}' en el carrito.");
+
+            if (producto.StockDisponible < cantidadTotal)
+                throw new StockInsuficienteException(
+                    $"No hay stock suficiente de '{producto.Nombre}' para esa cantidad.");
 
             if (itemExistente is not null)
             {
-               
-                var cantidadTotal = itemExistente.Cantidad + request.Cantidad;
-                if (producto.StockDisponible < cantidadTotal)
-                    throw new StockInsuficienteException(
-                        $"No hay stock suficiente de '{producto.Nombre}' para esa cantidad.");
-
                 itemExistente.Cantidad = cantidadTotal;
             }
             else
@@ -94,6 +98,10 @@ namespace Usaditos2026.Servicios
 
             if (item.Carrito.ClienteId != clienteId)
                 throw new UnauthorizedAccessException("El item no pertenece al carrito del cliente.");
+
+            if (nuevaCantidad > CarritoConstantes.LimiteUnidadesPorProducto)
+                throw new LimiteUnidadesException(
+                    $"Solo se permiten hasta {CarritoConstantes.LimiteUnidadesPorProducto} unidades del producto '{item.Producto.Nombre}' en el carrito.");
 
             if (item.Producto.StockDisponible < nuevaCantidad)
                 throw new StockInsuficienteException(
