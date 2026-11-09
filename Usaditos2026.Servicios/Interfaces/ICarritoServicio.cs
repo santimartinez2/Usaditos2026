@@ -5,6 +5,7 @@ namespace Usaditos2026.Servicios.Interfaces
     public interface ICarritoServicio
     {
         Task<CarritoDto> ObtenerCarritoAsync(int clienteId);
+        Task<int> ObtenerCantidadItemsAsync(int clienteId);
         Task<CarritoDto> AgregarProductoAsync(int clienteId, AgregarItemCarritoRequest request);
         Task<CarritoDto> EliminarProductoAsync(int clienteId, int itemId);
         Task<CarritoDto> ModificarCantidadAsync(int clienteId, int itemId, int nuevaCantidad);

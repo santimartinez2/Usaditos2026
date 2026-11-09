@@ -22,6 +22,12 @@ namespace Usaditos2026.Servicios
             return MapearACarritoDto(carrito);
         }
 
+        public async Task<int> ObtenerCantidadItemsAsync(int clienteId)
+        {
+            var carrito = await _carritoRepositorio.ObtenerCarritoActivoConItemsAsync(clienteId);
+            return carrito?.Items?.Sum(i => i.Cantidad) ?? 0;
+        }
+
         public async Task<CarritoDto> AgregarProductoAsync(int clienteId, AgregarItemCarritoRequest request)
         {
             if (request.Cantidad <= 0)
@@ -35,6 +41,10 @@ namespace Usaditos2026.Servicios
                 
                 throw new StockInsuficienteException(
                     $"El producto '{producto.Nombre}' no tiene stock disponible.");
+
+            if (producto.StockDisponible == 0)
+                throw new StockInsuficienteException(
+                    $"El producto '{producto.Nombre}' no está disponible (sin stock).");
 
             var carrito = await ObtenerOCrearCarritoActivoAsync(clienteId);
 
