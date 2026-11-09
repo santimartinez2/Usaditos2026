@@ -18,6 +18,8 @@ builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlServer(conn
 
 builder.Services.AddScoped<ICarritoRepositorio, CarritoRepositorio>();
 builder.Services.AddScoped<ICarritoServicio, CarritoServicio>();
+builder.Services.AddScoped<ICatalogoRepositorio, CatalogoRepositorio>();
+builder.Services.AddScoped<ICatalogoServicio, CatalogoServicio>();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
