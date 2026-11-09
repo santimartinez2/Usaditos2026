@@ -22,7 +22,7 @@ namespace Usaditos2026.Servicios
             return MapearACarritoDto(carrito);
         }
 
-        public async Task<CarritoDto> AgregarProductoAsync(AgregarItemCarritoRequest request)
+        public async Task<CarritoDto> AgregarProductoAsync(int clienteId, AgregarItemCarritoRequest request)
         {
             if (request.Cantidad <= 0)
                 throw new ArgumentException("La cantidad debe ser mayor a cero.");
@@ -36,7 +36,7 @@ namespace Usaditos2026.Servicios
                 throw new StockInsuficienteException(
                     $"El producto '{producto.Nombre}' no tiene stock disponible.");
 
-            var carrito = await ObtenerOCrearCarritoActivoAsync(request.ClienteId);
+            var carrito = await ObtenerOCrearCarritoActivoAsync(clienteId);
 
             var itemExistente = await _carritoRepositorio.ObtenerItemAsync(carrito.Id, request.ProductoId);
             var cantidadTotal = (itemExistente?.Cantidad ?? 0) + request.Cantidad;
@@ -68,7 +68,7 @@ namespace Usaditos2026.Servicios
 
             await _carritoRepositorio.GuardarCambiosAsync();
 
-            var carritoActualizado = await _carritoRepositorio.ObtenerCarritoActivoConItemsAsync(request.ClienteId);
+            var carritoActualizado = await _carritoRepositorio.ObtenerCarritoActivoConItemsAsync(clienteId);
             return MapearACarritoDto(carritoActualizado!);
         }
 

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 using Usaditos2026.BD.Datos;
 using Usaditos2026.Repositorio;
@@ -21,6 +22,45 @@ builder.Services.AddScoped<ICarritoRepositorio, CarritoRepositorio>();
 builder.Services.AddScoped<ICarritoServicio, CarritoServicio>();
 builder.Services.AddScoped<ICatalogoRepositorio, CatalogoRepositorio>();
 builder.Services.AddScoped<ICatalogoServicio, CatalogoServicio>();
+builder.Services.AddScoped<IClienteRepositorio, ClienteRepositorio>();
+builder.Services.AddScoped<IAuthServicio, AuthServicio>();
+
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.LoginPath = "/login";
+        options.AccessDeniedPath = "/login";
+        options.Cookie.Name = "Usaditos2026.Auth";
+        options.ExpireTimeSpan = TimeSpan.FromHours(8);
+        options.SlidingExpiration = true;
+
+        options.Events.OnRedirectToLogin = context =>
+        {
+            if (context.Request.Path.StartsWithSegments("/api"))
+            {
+                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                return Task.CompletedTask;
+            }
+
+            context.Response.Redirect(context.RedirectUri);
+            return Task.CompletedTask;
+        };
+
+        options.Events.OnRedirectToAccessDenied = context =>
+        {
+            if (context.Request.Path.StartsWithSegments("/api"))
+            {
+                context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                return Task.CompletedTask;
+            }
+
+            context.Response.Redirect(context.RedirectUri);
+            return Task.CompletedTask;
+        };
+    });
+
+builder.Services.AddAuthorization();
+builder.Services.AddCascadingAuthenticationState();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -55,8 +95,17 @@ else
    
     app.UseHsts();
 }
-app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
+app.UseWhen(
+    context => !context.Request.Path.StartsWithSegments("/api"),
+    branch =>
+    {
+        branch.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
+    });
+
 app.UseHttpsRedirection();
+
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.UseAntiforgery();
 

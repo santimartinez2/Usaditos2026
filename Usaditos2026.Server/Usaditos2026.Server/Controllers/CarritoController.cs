@@ -1,3 +1,5 @@
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Usaditos2026.Servicios.Interfaces;
 using Usaditos2026.Shared.DTOs;
@@ -5,8 +7,8 @@ using Usaditos2026.Shared.Excepciones;
 
 namespace Usaditos2026.Server.Controllers
 {
-   
     [ApiController]
+    [Authorize]
     [Route("api/[controller]")]
     public class CarritoController : ControllerBase
     {
@@ -17,26 +19,29 @@ namespace Usaditos2026.Server.Controllers
             _carritoServicio = carritoServicio;
         }
 
-       
-        [HttpGet("{clienteId:int}")]
-        public async Task<ActionResult<CarritoDto>> ObtenerCarrito(int clienteId)
+        [HttpGet]
+        public async Task<ActionResult<CarritoDto>> ObtenerCarrito()
         {
+            if (!TryObtenerClienteId(out var clienteId))
+                return Unauthorized();
+
             var carrito = await _carritoServicio.ObtenerCarritoAsync(clienteId);
             return Ok(carrito);
         }
 
-        
         [HttpPost("items")]
         public async Task<ActionResult<CarritoDto>> AgregarProducto([FromBody] AgregarItemCarritoRequest request)
         {
+            if (!TryObtenerClienteId(out var clienteId))
+                return Unauthorized();
+
             try
             {
-                var carrito = await _carritoServicio.AgregarProductoAsync(request);
+                var carrito = await _carritoServicio.AgregarProductoAsync(clienteId, request);
                 return Ok(carrito);
             }
             catch (StockInsuficienteException ex)
             {
-                
                 return Conflict(new { mensaje = ex.Message });
             }
             catch (LimiteUnidadesException ex)
@@ -53,11 +58,13 @@ namespace Usaditos2026.Server.Controllers
             }
         }
 
-       
-        [HttpPut("{clienteId:int}/items/{itemId:int}")]
+        [HttpPut("items/{itemId:int}")]
         public async Task<ActionResult<CarritoDto>> ModificarCantidad(
-            int clienteId, int itemId, [FromBody] ModificarCantidadRequest request)
+            int itemId, [FromBody] ModificarCantidadRequest request)
         {
+            if (!TryObtenerClienteId(out var clienteId))
+                return Unauthorized();
+
             try
             {
                 var carrito = await _carritoServicio.ModificarCantidadAsync(clienteId, itemId, request.Cantidad);
@@ -85,10 +92,12 @@ namespace Usaditos2026.Server.Controllers
             }
         }
 
-       
-        [HttpDelete("{clienteId:int}/items/{itemId:int}")]
-        public async Task<ActionResult<CarritoDto>> EliminarProducto(int clienteId, int itemId)
+        [HttpDelete("items/{itemId:int}")]
+        public async Task<ActionResult<CarritoDto>> EliminarProducto(int itemId)
         {
+            if (!TryObtenerClienteId(out var clienteId))
+                return Unauthorized();
+
             try
             {
                 var carrito = await _carritoServicio.EliminarProductoAsync(clienteId, itemId);
@@ -104,12 +113,20 @@ namespace Usaditos2026.Server.Controllers
             }
         }
 
-        
-        [HttpDelete("{clienteId:int}")]
-        public async Task<ActionResult<CarritoDto>> VaciarCarrito(int clienteId)
+        [HttpDelete]
+        public async Task<ActionResult<CarritoDto>> VaciarCarrito()
         {
+            if (!TryObtenerClienteId(out var clienteId))
+                return Unauthorized();
+
             var carrito = await _carritoServicio.VaciarCarritoAsync(clienteId);
             return Ok(carrito);
+        }
+
+        private bool TryObtenerClienteId(out int clienteId)
+        {
+            var valor = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            return int.TryParse(valor, out clienteId);
         }
     }
 }
