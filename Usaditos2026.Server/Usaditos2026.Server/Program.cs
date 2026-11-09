@@ -4,6 +4,7 @@ using Usaditos2026.Repositorio;
 using Usaditos2026.Repositorio.Interfaces;
 using Usaditos2026.Server.Client.Pages;
 using Usaditos2026.Server.Components;
+using Usaditos2026.Server.Data;
 using Usaditos2026.Servicios;
 using Usaditos2026.Servicios.Interfaces;
 
@@ -31,6 +32,14 @@ builder.Services.AddRazorComponents()
 #endregion
 
 var app = builder.Build();
+
+if (app.Environment.IsDevelopment())
+{
+    using var scope = app.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    await db.Database.MigrateAsync();
+    await SeedData.InicializarAsync(db);
+}
 
 #region Middleware
 
