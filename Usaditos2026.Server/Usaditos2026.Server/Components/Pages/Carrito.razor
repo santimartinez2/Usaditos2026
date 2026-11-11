@@ -1,7 +1,238 @@
 @page "/carrito"
+@rendermode InteractiveServer
+@attribute [Authorize]
+@using System.Globalization
+@using System.Security.Claims
+@using Usaditos2026.Servicios.Interfaces
+@using Usaditos2026.Shared.Constantes
+@using Usaditos2026.Shared.DTOs
+@using Usaditos2026.Shared.Excepciones
+@inject ICarritoServicio CarritoServicio
+@inject NavigationManager Navigation
 
 <PageTitle>Carrito</PageTitle>
 
 <h1>Carrito</h1>
 
-<p>Próximamente</p>
+@if (!string.IsNullOrWhiteSpace(_mensajeError))
+{
+    <div class="alert @_claseMensajeError" role="alert">@_mensajeError</div>
+}
+
+@if (_cargando)
+{
+    <p>Cargando carrito...</p>
+}
+else if (_carrito is null)
+{
+    <a class="btn btn-primary" href="/catalogo">Volver al catálogo</a>
+}
+else if (_carrito.Items.Count == 0)
+{
+    <p>Tu carrito está vacío</p>
+    <a class="btn btn-primary" href="/catalogo">Volver al catálogo</a>
+}
+else
+{
+    <div class="row row-cols-1 g-3">
+        @foreach (var item in _carrito.Items)
+        {
+            <div class="col">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">@item.NombreProducto</h5>
+                        <p class="mb-1">
+                            <strong>Precio unitario:</strong>
+                            @item.PrecioUnitario.ToString("C", new CultureInfo("es-AR"))
+                        </p>
+                        <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                            <button type="button" class="btn btn-outline-secondary btn-sm"
+                                    aria-label="Disminuir cantidad de @item.NombreProducto"
+                                    disabled="@(item.Cantidad <= 1 || _procesando)"
+                                    @onclick="() => ModificarCantidadAsync(item.Id, item.Cantidad - 1)">
+                                −
+                            </button>
+                            <span class="fw-bold">@item.Cantidad</span>
+                            <button type="button" class="btn btn-outline-secondary btn-sm"
+                                    aria-label="Aumentar cantidad de @item.NombreProducto"
+                                    disabled="@(item.Cantidad >= CarritoConstantes.LimiteUnidadesPorProducto || _procesando)"
+                                    @onclick="() => ModificarCantidadAsync(item.Id, item.Cantidad + 1)">
+                                +
+                            </button>
+                        </div>
+                        <p class="mb-2">
+                            <strong>Subtotal:</strong>
+                            @item.Subtotal.ToString("C", new CultureInfo("es-AR"))
+                        </p>
+                        <button type="button" class="btn btn-outline-danger btn-sm"
+                                disabled="@_procesando"
+                                @onclick="() => EliminarAsync(item.Id)">
+                            Eliminar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <div class="mt-4">
+        <p class="fs-5 mb-3">
+            <strong>Total:</strong>
+            @_carrito.Total.ToString("C", new CultureInfo("es-AR"))
+        </p>
+        <button type="button" class="btn btn-danger" disabled="@_procesando" @onclick="VaciarAsync">
+            Vaciar carrito
+        </button>
+    </div>
+}
+
+@code {
+    private CarritoDto? _carrito;
+    private int? _clienteId;
+    private bool _cargando = true;
+    private bool _procesando;
+    private string? _mensajeError;
+    private string _claseMensajeError = "alert-warning";
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AuthenticationStateTask is null)
+        {
+            Navigation.NavigateTo("/login", forceLoad: true);
+            return;
+        }
+
+        var authenticationState = await AuthenticationStateTask;
+        var idClaim = authenticationState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (!int.TryParse(idClaim, out var clienteId))
+        {
+            Navigation.NavigateTo("/login", forceLoad: true);
+            return;
+        }
+
+        _clienteId = clienteId;
+
+        try
+        {
+            _carrito = await CarritoServicio.ObtenerCarritoAsync(clienteId);
+        }
+        catch (Exception)
+        {
+            _mensajeError = "No se pudo cargar el carrito. Intentá de nuevo.";
+            _claseMensajeError = "alert-danger";
+        }
+        finally
+        {
+            _cargando = false;
+        }
+    }
+
+    private async Task ModificarCantidadAsync(int itemId, int nuevaCantidad)
+    {
+        if (_clienteId is null)
+        {
+            Navigation.NavigateTo("/login", forceLoad: true);
+            return;
+        }
+
+        _mensajeError = null;
+        _claseMensajeError = "alert-warning";
+        _procesando = true;
+
+        try
+        {
+            _carrito = await CarritoServicio.ModificarCantidadAsync(_clienteId.Value, itemId, nuevaCantidad);
+        }
+        catch (StockInsuficienteException ex)
+        {
+            _mensajeError = ex.Message;
+        }
+        catch (LimiteUnidadesException ex)
+        {
+            _mensajeError = ex.Message;
+        }
+        catch (Exception)
+        {
+            _mensajeError = "No se pudo actualizar el carrito. Intentá de nuevo.";
+            _claseMensajeError = "alert-danger";
+        }
+        finally
+        {
+            _procesando = false;
+        }
+    }
+
+    private async Task EliminarAsync(int itemId)
+    {
+        if (_clienteId is null)
+        {
+            Navigation.NavigateTo("/login", forceLoad: true);
+            return;
+        }
+
+        _mensajeError = null;
+        _claseMensajeError = "alert-warning";
+        _procesando = true;
+
+        try
+        {
+            _carrito = await CarritoServicio.EliminarProductoAsync(_clienteId.Value, itemId);
+        }
+        catch (StockInsuficienteException ex)
+        {
+            _mensajeError = ex.Message;
+        }
+        catch (LimiteUnidadesException ex)
+        {
+            _mensajeError = ex.Message;
+        }
+        catch (Exception)
+        {
+            _mensajeError = "No se pudo actualizar el carrito. Intentá de nuevo.";
+            _claseMensajeError = "alert-danger";
+        }
+        finally
+        {
+            _procesando = false;
+        }
+    }
+
+    private async Task VaciarAsync()
+    {
+        if (_clienteId is null)
+        {
+            Navigation.NavigateTo("/login", forceLoad: true);
+            return;
+        }
+
+        _mensajeError = null;
+        _claseMensajeError = "alert-warning";
+        _procesando = true;
+
+        try
+        {
+            _carrito = await CarritoServicio.VaciarCarritoAsync(_clienteId.Value);
+        }
+        catch (StockInsuficienteException ex)
+        {
+            _mensajeError = ex.Message;
+        }
+        catch (LimiteUnidadesException ex)
+        {
+            _mensajeError = ex.Message;
+        }
+        catch (Exception)
+        {
+            _mensajeError = "No se pudo actualizar el carrito. Intentá de nuevo.";
+            _claseMensajeError = "alert-danger";
+        }
+        finally
+        {
+            _procesando = false;
+        }
+    }
+}
