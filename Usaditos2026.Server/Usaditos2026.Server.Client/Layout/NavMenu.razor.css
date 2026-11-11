@@ -1,32 +1,71 @@
 .navbar-toggler {
     appearance: none;
     cursor: pointer;
-    width: 3rem;
+    width: 2.75rem;
     height: 2.75rem;
-    color: white;
+    min-width: 44px;
+    min-height: 44px;
     position: absolute;
-    top: 0.5rem;
-    right: 1rem;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    background: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%28255, 255, 255, 0.55%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e") no-repeat center/1.75rem rgba(255, 255, 255, 0.1);
+    top: 0.625rem;
+    right: 0.75rem;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    background: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%28255, 255, 255, 0.85%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2.5' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e") no-repeat center/1.5rem rgba(255, 255, 255, 0.08);
+}
+
+.navbar-toggler:focus, .navbar-toggler:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px #FFFFFF, 0 0 0 4px #1D6FA5;
 }
 
 .navbar-toggler:checked {
-    background-color: rgba(255, 255, 255, 0.5);
+    background-color: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.4);
 }
 
 .top-row {
-    min-height: 3.5rem;
-    background-color: rgba(0, 0, 0, 0.4);
+    min-height: 4rem;
+    background-color: #12273D;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .navbar-brand {
-    font-size: 1.1rem;
+    color: #FFFFFF;
+    text-decoration: none;
+    max-width: 100%;
+}
+
+.navbar-brand:hover {
+    color: #FFFFFF;
+}
+
+.brand-icon {
+    color: #FFC93C; /* Acento amarillo sobre fondo oscuro (8.55:1) */
+}
+
+.brand-text {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.15;
+}
+
+.brand-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #FFFFFF;
+    letter-spacing: -0.01em;
+}
+
+.brand-subtitle {
+    font-size: 0.72rem;
+    font-weight: 400;
+    color: #E3EDF6;
+    letter-spacing: 0.02em;
 }
 
 .nav-item {
-    font-size: 0.9rem;
-    padding-bottom: 0.5rem;
+    font-size: 0.95rem;
+    padding-bottom: 0.35rem;
 }
 
     .nav-item:first-of-type {
@@ -37,29 +76,61 @@
         padding-bottom: 1rem;
     }
 
+    /* Enlaces del sidebar: texto blanco o #E3EDF6 sobre fondo #17324D */
     .nav-item ::deep .nav-link {
-        color: #d7d7d7;
+        color: #E3EDF6;
         background: none;
         border: none;
-        border-radius: 4px;
-        min-height: 3rem;
+        border-left: 4px solid transparent;
+        border-radius: 6px;
+        min-height: 2.75rem; /* Al menos 44 px para toque táctil */
         height: auto;
         display: flex;
         align-items: center;
         line-height: 1.25;
-        padding: 0.5rem 0;
-        overflow-wrap: anywhere;
+        padding: 0.6rem 0.85rem 0.6rem 0.65rem;
         width: 100%;
+        text-decoration: none;
+        transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
     }
 
-.nav-item ::deep a.active {
-    background-color: rgba(255, 255, 255, 0.37);
-    color: white;
+    .nav-item ::deep .nav-link:hover {
+        background-color: rgba(255, 255, 255, 0.08);
+        color: #FFFFFF;
+    }
+
+    /* Ítem activo: fondo #1D6FA5, texto blanco y borde izquierdo de 4px en amarillo #FFC93C */
+    .nav-item ::deep a.active {
+        background-color: #1D6FA5;
+        color: #FFFFFF;
+        font-weight: 600;
+        border-left: 4px solid #FFC93C;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+    }
+
+.nav-icon {
+    opacity: 0.9;
 }
 
-.nav-item ::deep .nav-link:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-    color: white;
+/* Badge del carrito: amarillo #FFC93C con texto oscuro #1B2733 (9.87:1) */
+.badge-carrito {
+    background-color: #FFC93C;
+    color: #1B2733;
+    font-weight: 700;
+    font-size: 0.75rem;
+    padding: 0.25rem 0.55rem;
+    border-radius: 999px;
+    line-height: 1;
+}
+
+.user-greeting {
+    color: #E3EDF6;
+    font-size: 0.85rem;
+    min-height: 2rem;
+}
+
+.user-name {
+    font-weight: 500;
 }
 
 .nav-scrollable {
@@ -72,19 +143,21 @@
 
 @media (max-width: 640.98px) {
     .top-row {
-        padding-right: 4.5rem;
+        padding-right: 4.25rem !important; /* Espacio para el botón de 44 px */
     }
 
-    .navbar-brand {
-        display: block;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+    .brand-title {
+        font-size: 0.98rem;
+    }
+
+    .brand-subtitle {
+        font-size: 0.68rem;
     }
 
     .nav-scrollable {
-        max-height: calc(100vh - 3.5rem);
+        max-height: calc(100vh - 4rem);
         overflow-y: auto;
+        background-color: #17324D;
     }
 }
 
@@ -94,11 +167,8 @@
     }
 
     .nav-scrollable {
-        /* Never collapse the sidebar for wide screens */
         display: block;
-
-        /* Allow sidebar to scroll for tall menus */
-        height: calc(100vh - 3.5rem);
+        height: calc(100vh - 4rem);
         overflow-y: auto;
     }
 }
