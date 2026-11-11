@@ -16,7 +16,10 @@
 
 @if (!string.IsNullOrWhiteSpace(_mensajeExito))
 {
-    <div class="alert alert-success" role="alert">@_mensajeExito</div>
+    <div class="alert alert-success" role="alert">
+        @_mensajeExito
+        <a class="alert-link ms-2" href="/carrito">Ver carrito</a>
+    </div>
 }
 
 @if (!string.IsNullOrWhiteSpace(_mensajeError))
@@ -129,7 +132,7 @@ else
 
         try
         {
-            await CarritoServicio.AgregarProductoAsync(
+            var carritoActualizado = await CarritoServicio.AgregarProductoAsync(
                 _clienteId.Value,
                 new AgregarItemCarritoRequest
                 {
@@ -137,7 +140,9 @@ else
                     Cantidad = 1
                 });
 
-            _mensajeExito = $"'{producto.Nombre}' se agregó al carrito.";
+            var unidades = carritoActualizado.Items.Sum(i => i.Cantidad);
+            var total = carritoActualizado.Total.ToString("C", new CultureInfo("es-AR"));
+            _mensajeExito = $"Agregaste '{producto.Nombre}' al carrito. Tu carrito: {unidades} unidad(es), total {total}.";
         }
         catch (StockInsuficienteException ex)
         {
