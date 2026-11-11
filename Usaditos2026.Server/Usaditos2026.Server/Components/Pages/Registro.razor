@@ -6,33 +6,37 @@
 
 <PageTitle>Crear cuenta</PageTitle>
 
-<h1>Crear cuenta</h1>
+<div class="form-angosto">
+    <h1>Crear cuenta</h1>
 
-@if (!string.IsNullOrWhiteSpace(MensajeError))
-{
-    <div class="alert alert-danger">@MensajeError</div>
-}
+    @if (!string.IsNullOrWhiteSpace(MensajeError))
+    {
+        <div class="alert alert-danger">@MensajeError</div>
+    }
 
-<EditForm Model="Modelo" OnValidSubmit="RegistrarAsync" FormName="registro">
-    <DataAnnotationsValidator />
-    <div class="mb-3">
-        <label class="form-label" for="nombre">Nombre</label>
-        <InputText id="nombre" class="form-control" @bind-Value="Modelo!.Nombre" />
-        <ValidationMessage For="() => Modelo!.Nombre" />
-    </div>
-    <div class="mb-3">
-        <label class="form-label" for="email">Email</label>
-        <InputText id="email" class="form-control" @bind-Value="Modelo!.Email" />
-        <ValidationMessage For="() => Modelo!.Email" />
-    </div>
-    <div class="mb-3">
-        <label class="form-label" for="password">Contraseña</label>
-        <InputText id="password" type="password" class="form-control" @bind-Value="Modelo!.Password" />
-        <ValidationMessage For="() => Modelo!.Password" />
-    </div>
-    <button type="submit" class="btn btn-primary">Crear cuenta</button>
-    <a class="btn btn-link" href="login">Ya tengo cuenta</a>
-</EditForm>
+    <EditForm Model="Modelo" OnValidSubmit="RegistrarAsync" FormName="registro">
+        <DataAnnotationsValidator />
+        <div class="mb-3">
+            <label class="form-label" for="nombre">Nombre</label>
+            <InputText id="nombre" class="form-control" @bind-Value="Modelo!.Nombre" />
+            <ValidationMessage For="() => Modelo!.Nombre" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label" for="email">Email</label>
+            <InputText id="email" class="form-control" @bind-Value="Modelo!.Email" />
+            <ValidationMessage For="() => Modelo!.Email" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label" for="password">Contraseña</label>
+            <InputText id="password" type="password" class="form-control" @bind-Value="Modelo!.Password" />
+            <ValidationMessage For="() => Modelo!.Password" />
+        </div>
+        <div class="d-grid gap-2">
+            <button type="submit" class="btn btn-primary">Crear cuenta</button>
+            <a class="btn btn-link" href="login">Ya tengo cuenta</a>
+        </div>
+    </EditForm>
+</div>
 
 @code {
     [SupplyParameterFromForm]

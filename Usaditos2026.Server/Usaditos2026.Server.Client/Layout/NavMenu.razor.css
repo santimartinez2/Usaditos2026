@@ -1,8 +1,8 @@
 .navbar-toggler {
     appearance: none;
     cursor: pointer;
-    width: 3.5rem;
-    height: 2.5rem;
+    width: 3rem;
+    height: 2.75rem;
     color: white;
     position: absolute;
     top: 0.5rem;
@@ -42,10 +42,13 @@
         background: none;
         border: none;
         border-radius: 4px;
-        height: 3rem;
+        min-height: 3rem;
+        height: auto;
         display: flex;
         align-items: center;
-        line-height: 3rem;
+        line-height: 1.25;
+        padding: 0.5rem 0;
+        overflow-wrap: anywhere;
         width: 100%;
     }
 
@@ -65,6 +68,24 @@
 
 .navbar-toggler:checked ~ .nav-scrollable {
     display: block;
+}
+
+@media (max-width: 640.98px) {
+    .top-row {
+        padding-right: 4.5rem;
+    }
+
+    .navbar-brand {
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .nav-scrollable {
+        max-height: calc(100vh - 3.5rem);
+        overflow-y: auto;
+    }
 }
 
 @media (min-width: 641px) {

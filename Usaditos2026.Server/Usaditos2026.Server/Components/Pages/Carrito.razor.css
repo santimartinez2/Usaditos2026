@@ -1,0 +1,15 @@
+.btn-cantidad {
+    min-width: 2.75rem;
+}
+
+.cantidad {
+    min-width: 2.5rem;
+    text-align: center;
+}
+
+@media (max-width: 767.98px) {
+    .btn-eliminar,
+    .btn-vaciar {
+        width: 100%;
+    }
+}

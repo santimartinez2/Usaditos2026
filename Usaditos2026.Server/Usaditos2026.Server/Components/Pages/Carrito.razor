@@ -40,20 +40,20 @@ else
             <div class="col">
                 <div class="card">
                     <div class="card-body">
-                        <h5 class="card-title">@item.NombreProducto</h5>
+                        <h5 class="card-title text-break">@item.NombreProducto</h5>
                         <p class="mb-1">
                             <strong>Precio unitario:</strong>
                             @item.PrecioUnitario.ToString("C", new CultureInfo("es-AR"))
                         </p>
                         <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
-                            <button type="button" class="btn btn-outline-secondary btn-sm"
+                            <button type="button" class="btn btn-outline-secondary btn-sm btn-cantidad"
                                     aria-label="Disminuir cantidad de @item.NombreProducto"
                                     disabled="@(item.Cantidad <= 1 || _procesando)"
                                     @onclick="() => ModificarCantidadAsync(item.Id, item.Cantidad - 1)">
                                 −
                             </button>
-                            <span class="fw-bold">@item.Cantidad</span>
-                            <button type="button" class="btn btn-outline-secondary btn-sm"
+                            <span class="fw-bold cantidad">@item.Cantidad</span>
+                            <button type="button" class="btn btn-outline-secondary btn-sm btn-cantidad"
                                     aria-label="Aumentar cantidad de @item.NombreProducto"
                                     disabled="@(item.Cantidad >= CarritoConstantes.LimiteUnidadesPorProducto || _procesando)"
                                     @onclick="() => ModificarCantidadAsync(item.Id, item.Cantidad + 1)">
@@ -64,7 +64,7 @@ else
                             <strong>Subtotal:</strong>
                             @item.Subtotal.ToString("C", new CultureInfo("es-AR"))
                         </p>
-                        <button type="button" class="btn btn-outline-danger btn-sm"
+                        <button type="button" class="btn btn-outline-danger btn-sm btn-eliminar"
                                 disabled="@_procesando"
                                 @onclick="() => EliminarAsync(item.Id)">
                             Eliminar
@@ -80,7 +80,7 @@ else
             <strong>Total:</strong>
             @_carrito.Total.ToString("C", new CultureInfo("es-AR"))
         </p>
-        <button type="button" class="btn btn-danger" disabled="@_procesando" @onclick="VaciarAsync">
+        <button type="button" class="btn btn-danger btn-vaciar" disabled="@_procesando" @onclick="VaciarAsync">
             Vaciar carrito
         </button>
     </div>

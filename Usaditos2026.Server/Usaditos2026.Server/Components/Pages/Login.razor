@@ -7,28 +7,32 @@
 
 <PageTitle>Ingresar</PageTitle>
 
-<h1>Ingresar</h1>
+<div class="form-angosto">
+    <h1>Ingresar</h1>
 
-@if (!string.IsNullOrWhiteSpace(MensajeError))
-{
-    <div class="alert alert-danger">@MensajeError</div>
-}
+    @if (!string.IsNullOrWhiteSpace(MensajeError))
+    {
+        <div class="alert alert-danger">@MensajeError</div>
+    }
 
-<EditForm Model="Modelo" OnValidSubmit="IngresarAsync" FormName="login">
-    <DataAnnotationsValidator />
-    <div class="mb-3">
-        <label class="form-label" for="email">Email</label>
-        <InputText id="email" class="form-control" @bind-Value="Modelo!.Email" />
-        <ValidationMessage For="() => Modelo!.Email" />
-    </div>
-    <div class="mb-3">
-        <label class="form-label" for="password">Contraseña</label>
-        <InputText id="password" type="password" class="form-control" @bind-Value="Modelo!.Password" />
-        <ValidationMessage For="() => Modelo!.Password" />
-    </div>
-    <button type="submit" class="btn btn-primary">Ingresar</button>
-    <a class="btn btn-link" href="registro">Crear cuenta</a>
-</EditForm>
+    <EditForm Model="Modelo" OnValidSubmit="IngresarAsync" FormName="login">
+        <DataAnnotationsValidator />
+        <div class="mb-3">
+            <label class="form-label" for="email">Email</label>
+            <InputText id="email" class="form-control" @bind-Value="Modelo!.Email" />
+            <ValidationMessage For="() => Modelo!.Email" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label" for="password">Contraseña</label>
+            <InputText id="password" type="password" class="form-control" @bind-Value="Modelo!.Password" />
+            <ValidationMessage For="() => Modelo!.Password" />
+        </div>
+        <div class="d-grid gap-2">
+            <button type="submit" class="btn btn-primary">Ingresar</button>
+            <a class="btn btn-link" href="registro">Crear cuenta</a>
+        </div>
+    </EditForm>
+</div>
 
 @code {
     [CascadingParameter]
