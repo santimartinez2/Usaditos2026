@@ -12,11 +12,11 @@
 
 <PageTitle>Catálogo</PageTitle>
 
-<h1>Catálogo</h1>
+<h1 class="catalogo-titulo mb-4">Catálogo</h1>
 
 @if (!string.IsNullOrWhiteSpace(_mensajeExito))
 {
-    <div class="alert alert-success" role="alert">
+    <div class="alert alert-success catalogo-alert" role="alert">
         @_mensajeExito
         <a class="alert-link ms-2" href="/carrito">Ver carrito</a>
     </div>
@@ -24,16 +24,16 @@
 
 @if (!string.IsNullOrWhiteSpace(_mensajeError))
 {
-    <div class="alert @_claseMensajeError" role="alert">@_mensajeError</div>
+    <div class="alert @_claseMensajeError catalogo-alert" role="alert">@_mensajeError</div>
 }
 
 @if (_cargando)
 {
-    <p>Cargando productos...</p>
+    <p class="catalogo-estado">Cargando productos...</p>
 }
 else if (_productos.Count == 0)
 {
-    <p>No hay productos disponibles.</p>
+    <p class="catalogo-estado">No hay productos disponibles.</p>
 }
 else
 {
@@ -41,29 +41,49 @@ else
         @foreach (var producto in _productos)
         {
             <div class="col">
-                <div class="card h-100">
+                <div class="card h-100 card-producto">
+                    <!-- Cabecera ilustrativa de altura fija con SVG decorativo -->
+                    <div class="card-img-placeholder d-flex align-items-center justify-content-center" aria-hidden="true">
+                        <svg class="placeholder-icon" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 3a2 2 0 0 1 2 2c0 1.1-.9 2-2 2a2 2 0 0 1-2-2 2 2 0 0 1 2-2z" />
+                            <path d="M12 7v2" />
+                            <path d="M2.5 16.5 12 9l9.5 7.5a1.5 1.5 0 0 1-.9 2.5H3.4a1.5 1.5 0 0 1-.9-2.5z" />
+                        </svg>
+                    </div>
+
                     <div class="card-body d-flex flex-column">
-                        <h5 class="card-title text-break">@producto.Nombre</h5>
-                        <h6 class="card-subtitle mb-2 text-muted text-break">@producto.NombreCategoria</h6>
-                        <p class="card-text text-break">@producto.Descripcion</p>
-                        <p class="mb-1">
-                            <strong>Precio:</strong>
-                            @producto.Precio.ToString("C", new CultureInfo("es-AR"))
-                        </p>
-                        <p class="mb-3">
-                            <strong>Stock:</strong>
-                            @if (producto.StockDisponible == 0)
-                            {
-                                <span class="badge bg-secondary">Sin stock</span>
-                            }
-                            else
-                            {
-                                <span>@producto.StockDisponible</span>
-                            }
-                        </p>
-                        <button type="button" class="btn btn-primary mt-auto" @onclick="() => AgregarAlCarritoAsync(producto)">
-                            Agregar al carrito
-                        </button>
+                        <div class="mb-2">
+                            <span class="badge badge-categoria text-break">@producto.NombreCategoria</span>
+                        </div>
+
+                        <h5 class="card-title text-break mb-2">@producto.Nombre</h5>
+                        <p class="card-text text-muted text-break mb-3">@producto.Descripcion</p>
+
+                        <div class="mt-auto">
+                            <div class="mb-2">
+                                <span class="precio-producto">@producto.Precio.ToString("C", new CultureInfo("es-AR"))</span>
+                            </div>
+
+                            <div class="mb-3 stock-info">
+                                <strong>Stock: </strong>
+                                @if (producto.StockDisponible == 0)
+                                {
+                                    <span class="badge badge-stock-cero">Sin stock</span>
+                                }
+                                else if (producto.StockDisponible == 1)
+                                {
+                                    <span class="badge badge-stock-uno">¡Última unidad!</span>
+                                }
+                                else
+                                {
+                                    <span class="stock-disponible">@producto.StockDisponible disponibles</span>
+                                }
+                            </div>
+
+                            <button type="button" class="btn btn-primary w-100 btn-agregar" aria-label="Agregar @producto.Nombre al carrito" @onclick="() => AgregarAlCarritoAsync(producto)">
+                                Agregar al carrito
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
