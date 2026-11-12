@@ -123,17 +123,3 @@ El proyecto implementa de punta a punta un único caso de uso: **Agregar y elimi
 
 ---
 
-## ⚙️ Configurar la Cadena de Conexión
-
-Archivo `appsettings.json` (en `Usaditos2026.Server`):
-
-```json
-{
-  "ConnectionStrings": {
-    "ConnSqlServer": "Server=(localdb)\\mssqllocaldb;Database=Usaditos2026;Trusted_Connection=True;MultipleActiveResultSets=true"
-  }
-}
-```
-
-> Por defecto usa **SQL Server LocalDB** (incluido con Visual Studio). Si usás otra instancia de SQL Server, reemplazá la cadena por la tuya.  
-> **Ejemplo:** `Server=localhost;Database=Usaditos2026;Trusted_Connection=True;TrustServerCertificate=True;`
