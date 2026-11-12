@@ -1,15 +1,206 @@
+.carrito-titulo {
+    color: var(--text-main);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+.carrito-estado {
+    color: var(--text-muted);
+    font-size: 1.05rem;
+}
+
+.carrito-alert {
+    border-radius: 8px;
+    font-size: 0.95rem;
+    box-shadow: 0 1px 3px rgba(27, 39, 51, 0.05);
+}
+
+/* Tarjeta de ítem */
+.card-item {
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-soft);
+    border-radius: 12px;
+}
+
+.item-nombre {
+    color: var(--text-main);
+    font-weight: 700;
+    font-size: 1.1rem;
+    line-height: 1.3;
+}
+
+.item-precio-unitario {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
+/* Controles de cantidad */
+.controles-cantidad {
+    background-color: #F8FAFC;
+    padding: 0.25rem;
+    border-radius: 8px;
+    border: 1px solid var(--border-soft);
+}
+
 .btn-cantidad {
     min-width: 2.75rem;
+    min-height: 2.75rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    border-color: var(--border-soft);
+    color: var(--text-main);
+}
+
+.btn-cantidad:hover:not(:disabled) {
+    background-color: #E6F1FB;
+    color: var(--brand-primary);
+    border-color: #BACDDD;
 }
 
 .cantidad {
     min-width: 2.5rem;
     text-align: center;
+    font-size: 1.05rem;
+    color: var(--text-main);
 }
 
+/* Subtotal */
+.item-subtotal-block {
+    display: flex;
+    align-items: baseline;
+    gap: 0.35rem;
+    min-width: 7.5rem;
+}
+
+.subtotal-label {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+}
+
+.subtotal-valor {
+    color: var(--text-main);
+    font-weight: 700;
+    font-size: 1.15rem;
+}
+
+/* Botón Eliminar discreto */
+.btn-eliminar {
+    min-height: 2.75rem;
+    font-weight: 500;
+    font-size: 0.9rem;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Resumen del carrito */
+.card-resumen {
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-soft);
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(27, 39, 51, 0.04);
+}
+
+.total-block {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+}
+
+.total-label {
+    color: var(--text-muted);
+    font-size: 1.15rem;
+    font-weight: 500;
+}
+
+.total-monto {
+    color: var(--text-main);
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+}
+
+.btn-vaciar {
+    min-height: 2.75rem;
+    font-weight: 500;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Estado vacío */
+.card-vacio {
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-soft);
+    border-radius: 12px;
+}
+
+.icono-vacio {
+    color: var(--brand-primary);
+    opacity: 0.65;
+}
+
+.texto-vacio {
+    color: var(--text-main);
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+.btn-volver {
+    min-height: 2.75rem;
+    font-weight: 600;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Hover sutil en las tarjetas con soporte para prefers-reduced-motion */
+@media (prefers-reduced-motion: no-preference) {
+    .card-item {
+        transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+    }
+
+    .card-item:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 14px rgba(23, 50, 77, 0.08);
+        border-color: #BACDDD;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .card-item {
+        transition: none !important;
+        transform: none !important;
+    }
+
+    .card-item:hover {
+        transform: none !important;
+        box-shadow: 0 2px 8px rgba(23, 50, 77, 0.08);
+        border-color: #BACDDD;
+    }
+}
+
+/* Responsive: botones a ancho completo en celular */
 @media (max-width: 767.98px) {
     .btn-eliminar,
     .btn-vaciar {
         width: 100%;
+    }
+
+    .item-subtotal-block {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .controles-cantidad {
+        width: 100%;
+        justify-content: space-between;
     }
 }
