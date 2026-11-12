@@ -4,7 +4,7 @@
 
 Guía y documentación del e-commerce desarrollado para Usaditos Hernando (cliente: Carolina) usando arquitectura en capas con Blazor, Entity Framework Core y SQL Server.
 
-**Materia:** Modelado y Arquitectura de Software (Evaluación 2)  
+**Materia:** Modelado y Arquitectura de Software   
 **Alumno:** Santino Martinez  
 **Profesor:** Sergio Algorry  
 
