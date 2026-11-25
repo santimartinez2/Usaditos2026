@@ -44,10 +44,6 @@ namespace Usaditos2026.Server.Controllers
             {
                 return Conflict(new { mensaje = ex.Message });
             }
-            catch (LimiteUnidadesException ex)
-            {
-                return Conflict(new { mensaje = ex.Message });
-            }
             catch (KeyNotFoundException ex)
             {
                 return NotFound(new { mensaje = ex.Message });
@@ -71,10 +67,6 @@ namespace Usaditos2026.Server.Controllers
                 return Ok(carrito);
             }
             catch (StockInsuficienteException ex)
-            {
-                return Conflict(new { mensaje = ex.Message });
-            }
-            catch (LimiteUnidadesException ex)
             {
                 return Conflict(new { mensaje = ex.Message });
             }

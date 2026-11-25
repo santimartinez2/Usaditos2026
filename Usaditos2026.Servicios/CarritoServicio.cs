@@ -1,7 +1,6 @@
 using Usaditos2026.BD.Datos.Entity;
 using Usaditos2026.Repositorio.Interfaces;
 using Usaditos2026.Servicios.Interfaces;
-using Usaditos2026.Shared.Constantes;
 using Usaditos2026.Shared.DTOs;
 using Usaditos2026.Shared.Excepciones;
 
@@ -50,10 +49,6 @@ namespace Usaditos2026.Servicios
 
             var itemExistente = await _carritoRepositorio.ObtenerItemAsync(carrito.Id, request.ProductoId);
             var cantidadTotal = (itemExistente?.Cantidad ?? 0) + request.Cantidad;
-
-            if (cantidadTotal > CarritoConstantes.LimiteUnidadesPorProducto)
-                throw new LimiteUnidadesException(
-                    $"Solo se permiten hasta {CarritoConstantes.LimiteUnidadesPorProducto} unidades del producto '{producto.Nombre}' en el carrito.");
 
             if (producto.StockDisponible < cantidadTotal)
                 throw new StockInsuficienteException(
@@ -109,10 +104,6 @@ namespace Usaditos2026.Servicios
             if (item.Carrito.ClienteId != clienteId)
                 throw new UnauthorizedAccessException("El item no pertenece al carrito del cliente.");
 
-            if (nuevaCantidad > CarritoConstantes.LimiteUnidadesPorProducto)
-                throw new LimiteUnidadesException(
-                    $"Solo se permiten hasta {CarritoConstantes.LimiteUnidadesPorProducto} unidades del producto '{item.Producto.Nombre}' en el carrito.");
-
             if (item.Producto.StockDisponible < nuevaCantidad)
                 throw new StockInsuficienteException(
                     $"No hay stock suficiente de '{item.Producto.Nombre}' para esa cantidad.");
@@ -158,7 +149,8 @@ namespace Usaditos2026.Servicios
                     ProductoId = i.ProductoId,
                     NombreProducto = i.Producto?.Nombre ?? string.Empty,
                     Cantidad = i.Cantidad,
-                    PrecioUnitario = i.PrecioUnitario
+                    PrecioUnitario = i.PrecioUnitario,
+                    StockDisponible = i.Producto?.StockDisponible ?? 0
                 }).ToList()
             };
         }

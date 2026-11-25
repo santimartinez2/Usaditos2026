@@ -1,6 +1,5 @@
 @page "/catalogo"
 @rendermode InteractiveServer
-@attribute [Authorize]
 @using System.Globalization
 @using System.Security.Claims
 @using Usaditos2026.Servicios.Interfaces
@@ -104,22 +103,15 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        if (AuthenticationStateTask is null)
+        // El catálogo es público: sin sesión, _clienteId queda null y se cargan los productos igual.
+        if (AuthenticationStateTask is not null)
         {
-            Navigation.NavigateTo("/login", forceLoad: true);
-            return;
+            var authenticationState = await AuthenticationStateTask;
+            var idClaim = authenticationState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (int.TryParse(idClaim, out var clienteId))
+                _clienteId = clienteId;
         }
-
-        var authenticationState = await AuthenticationStateTask;
-        var idClaim = authenticationState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-        if (!int.TryParse(idClaim, out var clienteId))
-        {
-            Navigation.NavigateTo("/login", forceLoad: true);
-            return;
-        }
-
-        _clienteId = clienteId;
 
         try
         {
@@ -142,7 +134,7 @@ else
     {
         if (_clienteId is null)
         {
-            Navigation.NavigateTo("/login", forceLoad: true);
+            Navigation.NavigateTo("/login?returnUrl=/catalogo", forceLoad: true);
             return;
         }
 
@@ -165,10 +157,6 @@ else
             _mensajeExito = $"Agregaste '{producto.Nombre}' al carrito. Tu carrito: {unidades} unidad(es), total {total}.";
         }
         catch (StockInsuficienteException ex)
-        {
-            _mensajeError = ex.Message;
-        }
-        catch (LimiteUnidadesException ex)
         {
             _mensajeError = ex.Message;
         }

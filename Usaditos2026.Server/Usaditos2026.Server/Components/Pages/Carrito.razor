@@ -4,7 +4,6 @@
 @using System.Globalization
 @using System.Security.Claims
 @using Usaditos2026.Servicios.Interfaces
-@using Usaditos2026.Shared.Constantes
 @using Usaditos2026.Shared.DTOs
 @using Usaditos2026.Shared.Excepciones
 @inject ICarritoServicio CarritoServicio
@@ -67,7 +66,7 @@ else
                                 <span class="fw-bold cantidad">@item.Cantidad</span>
                                 <button type="button" class="btn btn-outline-secondary btn-sm btn-cantidad"
                                         aria-label="Aumentar cantidad de @item.NombreProducto"
-                                        disabled="@(item.Cantidad >= CarritoConstantes.LimiteUnidadesPorProducto || _procesando)"
+                                        disabled="@(item.Cantidad >= item.StockDisponible || _procesando)"
                                         @onclick="() => ModificarCantidadAsync(item.Id, item.Cantidad + 1)">
                                     +
                                 </button>
@@ -169,10 +168,6 @@ else
         {
             _mensajeError = ex.Message;
         }
-        catch (LimiteUnidadesException ex)
-        {
-            _mensajeError = ex.Message;
-        }
         catch (Exception)
         {
             _mensajeError = "No se pudo actualizar el carrito. Intentá de nuevo.";
@@ -204,10 +199,6 @@ else
         {
             _mensajeError = ex.Message;
         }
-        catch (LimiteUnidadesException ex)
-        {
-            _mensajeError = ex.Message;
-        }
         catch (Exception)
         {
             _mensajeError = "No se pudo actualizar el carrito. Intentá de nuevo.";
@@ -236,10 +227,6 @@ else
             _carrito = await CarritoServicio.VaciarCarritoAsync(_clienteId.Value);
         }
         catch (StockInsuficienteException ex)
-        {
-            _mensajeError = ex.Message;
-        }
-        catch (LimiteUnidadesException ex)
         {
             _mensajeError = ex.Message;
         }
