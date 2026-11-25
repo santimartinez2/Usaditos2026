@@ -2,6 +2,7 @@
 @using Usaditos2026.Server.Security
 @using Usaditos2026.Servicios.Interfaces
 @using Usaditos2026.Shared.DTOs
+@using Usaditos2026.Shared.Seguridad
 @inject IAuthServicio AuthServicio
 @inject NavigationManager Navigation
 
@@ -33,8 +34,16 @@
                 </div>
             }
 
+            @if (!string.IsNullOrWhiteSpace(MensajeAviso))
+            {
+                <div class="alert alert-info auth-alert d-flex align-items-start gap-2 mb-3" role="status">
+                    <span>@MensajeAviso</span>
+                </div>
+            }
+
             <EditForm Model="Modelo" OnValidSubmit="IngresarAsync" FormName="login">
                 <DataAnnotationsValidator />
+                <input type="hidden" name="ReturnUrlForm" value="@ReturnUrlForm" />
                 <div class="mb-3">
                     <label class="form-label auth-label" for="email">Email</label>
                     <InputText id="email" class="form-control" autocomplete="email" @bind-Value="Modelo!.Email" />
@@ -63,11 +72,27 @@
     [SupplyParameterFromForm]
     private LoginRequest? Modelo { get; set; }
 
+    [SupplyParameterFromQuery]
+    private string? ReturnUrl { get; set; }
+
+    [SupplyParameterFromForm]
+    private string? ReturnUrlForm { get; set; }
+
     private string? MensajeError;
+    private string? MensajeAviso;
 
     protected override void OnInitialized()
     {
         Modelo ??= new();
+        ReturnUrlForm ??= ReturnUrl;
+
+        var destino = RetornoSeguro.ObtenerDestinoSeguro(ReturnUrlForm);
+        MensajeAviso = destino switch
+        {
+            "/catalogo" => "Iniciá sesión para agregar productos al carrito.",
+            "/" => null,
+            _ => "Iniciá sesión para continuar."
+        };
     }
 
     private async Task IngresarAsync()
@@ -90,6 +115,9 @@
         }
 
         await AuthCookieHelper.IniciarSesionAsync(HttpContext, cliente);
-        Navigation.NavigateTo("/", forceLoad: true);
+
+        // Se valida el valor recibido en el POST, justo antes de redirigir (nunca el de la query).
+        var destino = RetornoSeguro.ObtenerDestinoSeguro(ReturnUrlForm);
+        Navigation.NavigateTo(destino, forceLoad: true);
     }
 }

@@ -96,8 +96,9 @@ El proyecto implementa de punta a punta dos casos de uso (actor: Cliente): **Agr
 
 ## 🧠 Decisiones de Diseño
 
-- **Límite de unidades:** Límite de 3 unidades por producto en el carrito. El tope real de cada producto es el menor entre 3 y su stock disponible.
+- **Tope por producto:** No hay límite fijo de unidades. El único tope es `StockDisponible`: la cantidad total en el carrito (o la nueva cantidad al modificar) no puede superarlo. Si se supera: `StockInsuficienteException` → HTTP 409. `ItemCarritoDto` expone el stock para que el botón "+" se desactive al alcanzarlo, pero la validación ocurre siempre en el servidor.
 - **Persistencia:** El carrito no se conserva al cerrar sesión: se vacía al cerrar y también al iniciar sesión.
+- **Catálogo público:** `/catalogo` se puede ver sin sesión. Al intentar agregar un producto sin sesión se va a `/login?returnUrl=/catalogo`; el login valida el `returnUrl` recibido en el POST y solo acepta rutas locales (`RetornoSeguro`), para evitar open redirects. `/carrito`, el checkout y los endpoints `/api/carrito` y `/api/pedidos` siguen requiriendo sesión; `/api/productos` es público.
 - **Gestión de Stock:** Agregar al carrito no descuenta stock: solo lo valida. El descuento ocurre al confirmar el pedido; cancelar un pedido confirmado lo devuelve.
 - **Estados del pedido:** `Pendiente`, `Confirmado`, `Entregado` y `Cancelado` en `PedidoConstantes`. El checkout crea pedidos directamente en `Confirmado` (no hay pago).
 - **Snapshot del pedido:** `ItemPedido` guarda copia del nombre y del **precio vigente del producto al confirmar** (`IsRequired`, `nvarchar(200)`), no una referencia al precio del carrito. Así, cambios posteriores en el catálogo no alteran pedidos viejos. El precio del carrito sigue siendo el vigente al agregar.
@@ -228,24 +229,25 @@ También se puede crear una cuenta nueva desde `/registro`.
 | Musculosa Rayas | 0 | Aviso de producto sin stock (`3a`) |
 | Remera Estampada Dinosaurio | 1 | Stock insuficiente |
 | Jean Clásico | 1 | Stock insuficiente |
-| Varios productos | 5 o más | Límite de 3 unidades por producto |
+| Varios productos | 5 o más | Llegar al tope por stock (sin límite fijo de unidades) |
 
 ### Pruebas manuales sugeridas
 
-1. Entrar a `/catalogo` sin sesión: redirige a `/login`.
-2. Iniciar sesión y agregar productos: el aviso muestra las unidades y el total del carrito.
-3. Intentar agregar la **Musculosa Rayas**: aviso de producto sin stock.
-4. Agregar 4 veces un producto con stock suficiente: el cuarto intento avisa el límite de 3 unidades.
-5. En `/carrito`: modificar cantidades, eliminar un producto y verificar que el total se recalcula.
-6. Vaciar el carrito y verificar el mensaje de carrito vacío.
-7. Cerrar sesión, volver a ingresar y comprobar que el carrito está vacío.
-8. Repetir en un ancho de pantalla de celular (~375 px).
+1. Entrar a `/catalogo` sin sesión: se ve el catálogo normalmente (sin redirección).
+2. Sin sesión, tocar "Agregar al carrito": va a `/login?returnUrl=/catalogo`, muestra el aviso y, después de ingresar, vuelve al catálogo.
+3. Iniciar sesión y agregar productos: el aviso muestra las unidades y el total del carrito.
+4. Intentar agregar la **Musculosa Rayas**: aviso de producto sin stock.
+5. Agregar un producto con stock 5 hasta llegar a 5 unidades: el botón "+" se deshabilita; el sexto intento desde la API responde 409 por stock (sin tope fijo, solo stock disponible).
+6. En `/carrito`: modificar cantidades, eliminar un producto y verificar que el total se recalcula.
+7. Vaciar el carrito y verificar el mensaje de carrito vacío.
+8. Cerrar sesión, volver a ingresar y comprobar que el carrito está vacío.
+9. Repetir en un ancho de pantalla de celular (~375 px).
 
 ---
 
 ## 🔌 API REST
 
-Se puede probar desde Swagger (`/swagger`). Los endpoints del carrito requieren haber iniciado sesión: primero ejecutar el login.
+Se puede probar desde Swagger (`/swagger`). `/api/productos` es público; los endpoints del carrito y de pedidos requieren haber iniciado sesión: primero ejecutar el login.
 
 | Método | Ruta | Descripción |
 | :---: | :--- | :--- |
@@ -270,7 +272,7 @@ Se puede probar desde Swagger (`/swagger`). Los endpoints del carrito requieren 
 | `401` | No hay sesión iniciada |
 | `403` | El ítem o el pedido no pertenece al cliente |
 | `404` | El producto, el ítem o el pedido no existe |
-| `409` | Sin stock, límite de unidades, carrito vacío, estado inválido o conflicto de concurrencia |
+| `409` | Sin stock, carrito vacío, estado inválido o conflicto de concurrencia |
 
 ### Flujo completo en Swagger
 
@@ -302,11 +304,12 @@ Se puede probar desde Swagger (`/swagger`). Los endpoints del carrito requieren 
 ## ✅ Checklist del Caso de Uso
 
 - [x] Registro e inicio de sesión de clientes (cookie, contraseña hasheada)
-- [x] Catálogo de productos con precio y stock
+- [x] Catálogo público con precio y stock (visible sin sesión)
+- [x] Visitante que intenta agregar al carrito vuelve al catálogo después de login
 - [x] Datos de prueba cargados automáticamente
 - [x] Agregar producto al carrito verificando stock en el servidor
 - [x] Aviso de producto sin stock (`3a`)
-- [x] Límite de 3 unidades por producto
+- [x] Sin límite fijo: el único tope es el stock disponible
 - [x] Aviso al agregar con las unidades y el total actualizados del carrito
 - [x] Pantalla del carrito con el detalle de productos y el total
 - [x] Eliminar producto y recalcular el total
