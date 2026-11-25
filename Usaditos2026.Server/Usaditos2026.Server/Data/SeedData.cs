@@ -43,6 +43,10 @@ namespace Usaditos2026.Server.Data
                     Precio = 4500m,
                     StockDisponible = 10,
                     Activo = true,
+                    Talle = "4",
+                    Estado = EstadoPrenda.NuevoConEtiqueta,
+                    Observaciones = "Con etiqueta original, sin uso.",
+                    FechaAlta = DateTime.UtcNow.AddDays(-1),
                     CategoriaId = remeras.Id
                 },
                 new Producto
@@ -52,6 +56,10 @@ namespace Usaditos2026.Server.Data
                     Precio = 5200m,
                     StockDisponible = 1,
                     Activo = true,
+                    Talle = "6",
+                    Estado = EstadoPrenda.ComoNueva,
+                    Observaciones = "Estampado intacto, sin marcas.",
+                    FechaAlta = DateTime.UtcNow.AddDays(-2),
                     CategoriaId = remeras.Id
                 },
                 new Producto
@@ -61,6 +69,10 @@ namespace Usaditos2026.Server.Data
                     Precio = 3900m,
                     StockDisponible = 0,
                     Activo = true,
+                    Talle = "8",
+                    Estado = EstadoPrenda.Bueno,
+                    Observaciones = "Pequeña mancha en la manga.",
+                    FechaAlta = DateTime.UtcNow.AddDays(-3),
                     CategoriaId = remeras.Id
                 },
                 new Producto
@@ -70,6 +82,10 @@ namespace Usaditos2026.Server.Data
                     Precio = 7800m,
                     StockDisponible = 5,
                     Activo = true,
+                    Talle = "10",
+                    Estado = EstadoPrenda.MuyBueno,
+                    Observaciones = "Puños elásticos en buen estado.",
+                    FechaAlta = DateTime.UtcNow.AddDays(-4),
                     CategoriaId = pantalones.Id
                 },
                 new Producto
@@ -79,6 +95,10 @@ namespace Usaditos2026.Server.Data
                     Precio = 4200m,
                     StockDisponible = 8,
                     Activo = true,
+                    Talle = "12",
+                    Estado = EstadoPrenda.Bueno,
+                    Observaciones = "Desgaste leve en las costuras.",
+                    FechaAlta = DateTime.UtcNow.AddDays(-5),
                     CategoriaId = pantalones.Id
                 },
                 new Producto
@@ -88,6 +108,10 @@ namespace Usaditos2026.Server.Data
                     Precio = 9500m,
                     StockDisponible = 1,
                     Activo = true,
+                    Talle = "14",
+                    Estado = EstadoPrenda.ComoNueva,
+                    Observaciones = "Sin signos de uso.",
+                    FechaAlta = DateTime.UtcNow.AddDays(-6),
                     CategoriaId = pantalones.Id
                 },
                 new Producto
@@ -97,6 +121,10 @@ namespace Usaditos2026.Server.Data
                     Precio = 8500m,
                     StockDisponible = 6,
                     Activo = true,
+                    Talle = "16",
+                    Estado = EstadoPrenda.MuyBueno,
+                    Observaciones = "Bolsillo canguro impecable.",
+                    FechaAlta = DateTime.UtcNow.AddDays(-7),
                     CategoriaId = abrigos.Id
                 },
                 new Producto
@@ -106,6 +134,10 @@ namespace Usaditos2026.Server.Data
                     Precio = 11000m,
                     StockDisponible = 5,
                     Activo = true,
+                    Talle = TalleConstantes.TalleUnico,
+                    Estado = EstadoPrenda.MuyBueno,
+                    Observaciones = "Cierre y capucha funcionan correctamente.",
+                    FechaAlta = DateTime.UtcNow.AddDays(-8),
                     CategoriaId = abrigos.Id
                 },
                 new Producto
@@ -115,6 +147,10 @@ namespace Usaditos2026.Server.Data
                     Precio = 12500m,
                     StockDisponible = 2,
                     Activo = true,
+                    Talle = TalleConstantes.TalleUnico,
+                    Estado = EstadoPrenda.Bueno,
+                    Observaciones = "Polar con leve pelusa por uso.",
+                    FechaAlta = DateTime.UtcNow.AddDays(-9),
                     CategoriaId = abrigos.Id
                 }
             };

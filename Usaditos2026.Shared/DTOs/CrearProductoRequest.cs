@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Usaditos2026.Shared.Constantes;
 
 namespace Usaditos2026.Shared.DTOs
 {
@@ -14,5 +15,8 @@ namespace Usaditos2026.Shared.DTOs
         public int StockDisponible { get; set; }
 
         public int CategoriaId { get; set; }
+        public string Talle { get; set; } = string.Empty;
+        public EstadoPrenda? Estado { get; set; }
+        public string? Observaciones { get; set; }
     }
 }

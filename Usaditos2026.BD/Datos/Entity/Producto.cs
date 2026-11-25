@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Text;
+using Usaditos2026.Shared.Constantes;
 
 namespace Usaditos2026.BD.Datos.Entity
 {
@@ -13,6 +14,10 @@ namespace Usaditos2026.BD.Datos.Entity
         public int StockDisponible { get; set; }
         public bool Activo { get; set; }
         public string? ImagenUrl { get; set; }
+        public string Talle { get; set; } = string.Empty;
+        public EstadoPrenda Estado { get; set; }
+        public string? Observaciones { get; set; }
+        public DateTime FechaAlta { get; set; }
         public int CategoriaId { get; set; }
         public Categoria Categoria { get; set; }
         public ICollection<ItemCarrito> ItemsCarrito { get; set; }

@@ -107,7 +107,8 @@ El proyecto implementa de punta a punta los casos de uso **Agregar y eliminar pr
 
 - **Tope por producto:** No hay límite fijo de unidades. El único tope es `StockDisponible`: la cantidad total en el carrito (o la nueva cantidad al modificar) no puede superarlo. Si se supera: `StockInsuficienteException` → HTTP 409. `ItemCarritoDto` expone el stock para que el botón "+" se desactive al alcanzarlo, pero la validación ocurre siempre en el servidor.
 - **Persistencia:** El carrito no se conserva al cerrar sesión: se vacía al cerrar y también al iniciar sesión.
-- **Catálogo público:** `/catalogo` se puede ver sin sesión. Al intentar agregar un producto sin sesión se va a `/login?returnUrl=/catalogo`; el login valida el `returnUrl` recibido en el POST y solo acepta rutas locales (`RetornoSeguro`), para evitar open redirects. `/carrito`, el checkout y los endpoints `/api/carrito` y `/api/pedidos` siguen requiriendo sesión; `/api/productos` es público.
+- **Catálogo público:** `/catalogo` se puede ver sin sesión. Al intentar agregar un producto sin sesión se va a `/login?returnUrl=/catalogo`; el login valida el `returnUrl` recibido en el POST y solo acepta rutas locales (`RetornoSeguro`), para evitar open redirects. `/carrito`, el checkout y los endpoints `/api/carrito` y `/api/pedidos` siguen requiriendo sesión; `/api/productos`, `/api/productos/buscar` y `/api/productos/filtros` son públicos.
+- **Talle y estado de la prenda:** Cada producto tiene `Talle`, `EstadoPrenda`, `Observaciones` y `FechaAlta` (UTC). El orden canónico de talles en `TalleConstantes` es: `RN`, `0-3 meses`, `3-6 meses`, `6-9 meses`, `9-12 meses`, `12-18 meses`, `18-24 meses`, `2`, `3`, `4`, `5`, `6`, `8`, `10`, `12`, `14`, `16`, `Talle único`, `Calzado 18` a `Calzado 35`. Los estados son `NuevoConEtiqueta`, `ComoNueva`, `MuyBueno` y `Bueno` (valores 1 a 4; `0` es inválido), con texto para mostrar en `EstadoPrendaHelper` y `EstadoTexto` en los DTOs. Los valores por defecto para filas existentes (`Talle único`, `MuyBueno` y `SYSUTCDATETIME()` para `FechaAlta`) viven solo en la migración; un alta nueva los valida en `AdminCatalogoServicio`.
 - **Gestión de Stock:** Agregar al carrito no descuenta stock: solo lo valida. El descuento ocurre al confirmar el pedido; cancelar un pedido confirmado lo devuelve.
 - **Estados del pedido:** `Pendiente` se usa solo para el pago; los estados del pedido son `Confirmado`, `ListoParaRetirar`, `Entregado` y `Cancelado` en `PedidoConstantes`. El checkout crea pedidos directamente en `Confirmado` con pago `Pendiente`.
 - **Entrega y pago:** `TipoEntrega` (`Retiro`/`Envio`), `MetodoPago` (`Efectivo`/`Transferencia`/`MercadoPago`) y `EstadoPago` (`Pendiente`/`Pagado`/`Rechazado`) son enums C# con conversión a string en EF (`nvarchar(20)`); la API acepta y devuelve solo strings (`JsonStringEnumConverter` sin números). La dirección es obligatoria en envío y se descarta en retiro; el teléfono se valida en servidor.
@@ -122,7 +123,7 @@ El proyecto implementa de punta a punta los casos de uso **Agregar y eliminar pr
 - **Administración de pedidos:** Solo API REST (`/api/admin/pedidos`). Listado paginado y filtrable, detalle con `rowVersion`, transiciones de estado y registro de pago. No se agregaron páginas Blazor.
 - **Imágenes de producto:** Una imagen principal opcional por producto (`Producto.ImagenUrl`, `nvarchar(300)`). Solo API REST: `POST /api/admin/productos/{id}/imagen` (multipart/form-data) y `DELETE /api/admin/productos/{id}/imagen`. El nombre del archivo **siempre lo genera el servidor** (`GUID` + extensión detectada); el `fileName` del cliente nunca se usa. Se aceptan JPEG, PNG y WebP verificando los magic bytes, con `RequestSizeLimit` y validación real en el servicio. SkiaSharp **4.157.0** (MIT) valida dimensiones antes de decodificar (lado ≤ 8000 px, ≤ 40 MP), aplica `SKCodec.EncodedOrigin` antes de re-codificar, redimensiona a 1200 px y elimina metadatos/GPS. Los archivos se guardan en `App_Data/uploads/productos` (fuera de `wwwroot`, ignorado por Git) y se sirven desde `/uploads/productos` con caché inmutable y `nosniff`. Si falla la base después de guardar, se borra el archivo nuevo; si sale bien, se borra el anterior (un fallo de borrado solo deja un `LogWarning`). El `rowVersion` viejo responde `409`; formato/dimensiones/tamaño inválidos responden `400`. En Linux se requiere `SkiaSharp.NativeAssets.Linux.NoDependencies` **4.157.0**; se documenta pero no se agrega al proyecto porque el despliegue objetivo es Windows.
 - **Filtro de fechas del admin:** `fechaDesde`/`fechaHasta` se interpretan en `Tienda:ZonaHoraria` (default `America/Argentina/Cordoba`, con fallback `Argentina Standard Time` y luego UTC). `FechaHelper` aplica `DateTime.SpecifyKind(..., DateTimeKind.Unspecified)` antes de convertir, para que un valor con `Z` u offset no corra el día. `fechaHasta` se convierte al inicio del día siguiente y se compara con `<` en UTC (no `.Date.AddDays(1)` en el repositorio).
-- **Fuera de alcance:** Pasarela de pago real / cobro online, pantallas Blazor del panel de administración, filtros por categoría, registro con verificación de email y recuperación de contraseña. El sistema solo registra el estado del pago que confirma el admin.
+- **Fuera de alcance:** Pasarela de pago real / cobro online, pantallas Blazor del panel de administración, registro con verificación de email y recuperación de contraseña. El sistema solo registra el estado del pago que confirma el admin.
 
 ---
 
@@ -248,7 +249,7 @@ dotnet ef migrations add AgregarPedidos --project Usaditos2026.BD --startup-proj
 dotnet ef migrations script 20260616193125_InitialCreate --project Usaditos2026.BD --startup-project Usaditos2026.Server/Usaditos2026.Server
 ```
 
-La migración `AgregarPedidos` crea `Pedidos` e `ItemsPedido`, agrega `RowVersion` a `Productos` y reduce `Productos.Nombre` a `nvarchar(200)` (no hay nombres tan largos en los datos de prueba). `AgregarRolCliente` agrega `Clientes.Rol` como `nvarchar(20)` no nulo con valor por defecto `Cliente`. `AgregarEntregaYPagoPedido` agrega los campos de entrega/pago en `Pedidos` (`nvarchar(20)` para los enums, con defaults `Retiro`, `Efectivo` y `Pendiente`), sin backfill manual. `AgregarImagenProducto` agrega `Productos.ImagenUrl` como `nvarchar(300)` nullable, sin cambios en otras tablas.
+La migración `AgregarPedidos` crea `Pedidos` e `ItemsPedido`, agrega `RowVersion` a `Productos` y reduce `Productos.Nombre` a `nvarchar(200)` (no hay nombres tan largos en los datos de prueba). `AgregarRolCliente` agrega `Clientes.Rol` como `nvarchar(20)` no nulo con valor por defecto `Cliente`. `AgregarEntregaYPagoPedido` agrega los campos de entrega/pago en `Pedidos` (`nvarchar(20)` para los enums, con defaults `Retiro`, `Efectivo` y `Pendiente`), sin backfill manual. `AgregarImagenProducto` agrega `Productos.ImagenUrl` como `nvarchar(300)` nullable, sin cambios en otras tablas. `AgregarTalleEstadoProducto` agrega `Productos.Talle` (`nvarchar(20)`, default `Talle único`), `Productos.Estado` (`nvarchar(20)`, default `MuyBueno`), `Productos.Observaciones` (`nvarchar(300)`, nullable) y `Productos.FechaAlta` (`datetime2`, default `SYSUTCDATETIME()`); los defaults se pusieron a mano en la migración, no en el modelo, y `Down` solo quita esas columnas.
 
 ---
 
@@ -270,7 +271,7 @@ También se puede crear una cuenta nueva desde `/registro`.
 
 Se crea automáticamente desde `appsettings.Development.json` (`AdminInicial`). No existe en `appsettings.json` y la creación es idempotente: si el email ya es un cliente, se omite con un `LogWarning`.
 
-**Catálogo de prueba:** 3 categorías (Remeras, Pantalones, Abrigos) y 9 productos con stock variado, pensados para probar cada escenario:
+**Catálogo de prueba:** 3 categorías (Remeras, Pantalones, Abrigos) y 9 productos con stock variado, pensados para probar cada escenario. Todos tienen talle, estado y `fechaAlta` escalonada; hay ejemplos de los cuatro estados, de talles numéricos y de `Talle único`, con observaciones breves:
 
 | Producto | Stock | Sirve para probar |
 | :--- | :---: | :--- |
@@ -301,7 +302,9 @@ Se puede probar desde Swagger (`/swagger`). `/api/productos` es público; los en
 | :---: | :--- | :--- |
 | `POST` | `/api/auth/login` | Inicia sesión |
 | `POST` | `/api/auth/logout` | Cierra sesión y vacía el carrito |
-| `GET` | `/api/productos` | Lista los productos activos |
+| `GET` | `/api/productos` | Lista los productos activos (sin cambios) |
+| `GET` | `/api/productos/buscar` | Busca activos por `categoriaId`, `talle`, `estado`, `texto`, `soloDisponibles`, `orden`, `page` y `pageSize` |
+| `GET` | `/api/productos/filtros` | Devuelve categorías, talles y estados con cantidades disponibles |
 | `GET` | `/api/carrito` | Obtiene el carrito del cliente |
 | `POST` | `/api/carrito/items` | Agrega un producto al carrito |
 | `PUT` | `/api/carrito/items/{itemId}` | Modifica la cantidad de un ítem |
@@ -343,7 +346,7 @@ Se puede probar desde Swagger (`/swagger`). `/api/productos` es público; los en
 
 | Código | Significado |
 | :---: | :--- |
-| `400` | Datos inválidos (cantidad menor a uno, enum inválido, teléfono/dirección faltante, `rowVersion` vacío o imagen con formato/tamaño/dimensiones inválidos) |
+| `400` | Datos inválidos (cantidad menor a uno, enum inválido —incluye `estado` o `orden` numérico en la query—, talle fuera de la lista, texto > 100, `page`/`pageSize` inválidos, teléfono/dirección faltante, `rowVersion` vacío o imagen con formato/tamaño/dimensiones inválidos) |
 | `401` | No hay sesión iniciada |
 | `403` | El ítem o el pedido no pertenece al cliente; o el usuario no es Admin |
 | `404` | El producto, el ítem, el pedido o la categoría no existe |
@@ -365,9 +368,10 @@ Se puede probar desde Swagger (`/swagger`). `/api/productos` es público; los en
 
 1. Hacer logout (`POST /api/auth/logout`) si había un cliente logueado y ejecutar `POST /api/auth/login` con `{"email":"admin@usaditos.com","password":"Admin123!"}`.
 2. `GET /api/admin/categorias` → `POST /api/admin/categorias` con `{"nombre":"Accesorios","descripcion":"Gorros y bufandas"}`. Repetir el mismo nombre da `409`.
-3. `POST /api/admin/productos` con `{"nombre":"Gorro de lana","descripcion":"Invierno","precio":12.50,"stockDisponible":8,"categoriaId":4}` (usar un `id` de categoría existente).
+3. `POST /api/admin/productos` con `{"nombre":"Gorro de lana","descripcion":"Invierno","precio":12.50,"stockDisponible":8,"talle":"Talle único","estado":"MuyBueno","observaciones":"Sin uso, con etiqueta.","categoriaId":4}` (usar un `id` de categoría existente). `estado` y `talle` son obligatorios; `observaciones` es opcional (máximo 300 caracteres).
 4. `GET /api/admin/productos` lista también los inactivos; `GET /api/productos` (público) no muestra los desactivados.
-5. `GET /api/admin/productos/{id}` devuelve `rowVersion` en base64. Para modificar, enviar `PUT /api/admin/productos/{id}` con todos los campos y ese `rowVersion`, por ejemplo `{"nombre":"Gorro de lana","descripcion":"Invierno","precio":14.00,"stockDisponible":8,"categoriaId":4,"rowVersion":"AAAAAAAACJ8="}` (copiar el valor real de la respuesta).
+5. `GET /api/admin/productos/{id}` devuelve `rowVersion` en base64, `estado` (`"MuyBueno"`), `estadoTexto` (`"Muy buen estado"`)
+, `talle`, `observaciones` y `fechaAlta`. Para modificar, enviar `PUT /api/admin/productos/{id}` con todos los campos y ese `rowVersion`, por ejemplo `{"nombre":"Gorro de lana","descripcion":"Invierno","precio":14.00,"stockDisponible":8,"talle":"Talle único","estado":"MuyBueno","observaciones":"Sin uso, con etiqueta.","categoriaId":4,"rowVersion":"AAAAAAAACJ8="}` (copiar el valor real de la respuesta).
 6. Concurrencia: guardar el `rowVersion` original, hacer un `PUT` con precio `14.00` y después otro `PUT` con el `rowVersion` guardado y precio `16.00` → el segundo responde `409` con "El producto fue modificado, recargá".
 7. `DELETE /api/admin/productos/{id}` con body `{"rowVersion":"<base64 actual>"}` → `204`. El producto desaparece de `/api/productos` pero sigue en `/api/admin/productos` con `activo: false`.
 8. `POST /api/admin/productos/{id}/activar` con el `rowVersion` devuelto por el listado admin → vuelve a aparecer en el catálogo público.
@@ -382,6 +386,14 @@ Se puede probar desde Swagger (`/swagger`). `/api/productos` es público; los en
 4. Repetir el `POST` con el `rowVersion` viejo: responde `409`. Subir un `.txt`, un `.svg` o un archivo mayor a 8 MB responde `400`.
 5. `DELETE /api/admin/productos/{id}/imagen` con `{"rowVersion":"<base64 actual>"}` deja `imagenUrl` en `null` y borra el archivo. Repetir con el valor viejo da `409`.
 6. El mismo producto se ve en `GET /api/productos` y `GET /api/admin/productos` con el `imagenUrl` correspondiente. Las imágenes quedan fuera de Git en `App_Data/uploads/productos`.
+
+### Flujo de búsqueda de catálogo en Swagger (público)
+
+1. `GET /api/productos/filtros` sin sesión: devuelve `categorias`, `talles` y `estados` con su `cantidad`. El orden de `talles` es el canónico de `TalleConstantes`; el de `estados` es `NuevoConEtiqueta`, `ComoNueva`, `MuyBueno`, `Bueno`.
+2. `GET /api/productos/buscar?texto=remera&estado=ComoNueva&orden=PrecioMenor&page=1&pageSize=12`: devuelve `items`, `total`, `page` y `pageSize`, siempre sobre productos activos.
+3. Probar `soloDisponibles=true`, `categoriaId=<id>` y `talle=6` por separado y combinados: la Musculosa Rayas (stock 0) desaparece con `soloDisponibles=true`.
+4. `GET /api/productos/buscar?estado=1` y `?orden=0` responden `400`; también responden `400` `page=0`, `pageSize=49`, un `texto` de más de 100 caracteres y un `talle` fuera de la lista.
+5. `GET /api/productos` sigue devolviendo el listado simple de activos, ahora con `talle`, `estado`, `estadoTexto`, `observaciones`, `fechaAlta` e `imagenUrl`.
 
 ### Flujo de pedidos en Swagger (Admin)
 
@@ -453,5 +465,10 @@ Se puede probar desde Swagger (`/swagger`). `/api/productos` es público; los en
 - [x] Archivos fuera de `wwwroot`, servidos por `/uploads/productos` con caché inmutable y `nosniff`, ignorados por Git
 - [x] Concurrencia de imagen mediante `rowVersion` (409 con valor viejo) y borrado del archivo viejo recién después de guardar en la base
 - [x] Filtro de fechas del admin interpretado en `Tienda:ZonaHoraria` con `SpecifyKind(..., Unspecified)` y comparación UTC exclusiva
+- [x] `Talle`, `EstadoPrenda`, `Observaciones` y `FechaAlta` en `Producto`, DTOs y migración con defaults para filas existentes
+- [x] `GET /api/productos/buscar` con filtros por categoría, talle, estado, texto, disponibilidad, orden y paginación (máximo 48 por página)
+- [x] `GET /api/productos/filtros` con cantidades por categoría, talle y estado, sin incluir inactivos
+- [x] Validación de enums por query string (`estado` y `orden` numéricos dan `400`)
+- [x] ABM admin valida talle/estado/observaciones y devuelve `estadoTexto` y `fechaAlta`
 - [ ] Contador de unidades del menú actualizado en vivo (hoy se actualiza al navegar entre páginas)
 - [ ] Pantallas Blazor para confirmar pedido y ver el historial (fuera de alcance: solo backend)
