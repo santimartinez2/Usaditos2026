@@ -94,6 +94,13 @@ namespace Usaditos2026.BD.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("Rol")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasDefaultValue("Cliente");
+
                     b.HasKey("Id");
 
                     b.ToTable("Clientes");

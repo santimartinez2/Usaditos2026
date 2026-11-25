@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Usaditos2026.BD.Datos.Entity;
 using Usaditos2026.Repositorio.Interfaces;
 using Usaditos2026.Servicios.Interfaces;
+using Usaditos2026.Shared.Constantes;
 using Usaditos2026.Shared.DTOs;
 
 namespace Usaditos2026.Servicios
@@ -38,6 +39,7 @@ namespace Usaditos2026.Servicios
             {
                 Nombre = request.Nombre.Trim(),
                 Email = email,
+                Rol = RolConstantes.Cliente,
                 FechaRegistro = DateTime.UtcNow,
                 Activo = true
             };
@@ -93,7 +95,8 @@ namespace Usaditos2026.Servicios
             {
                 Id = cliente.Id,
                 Nombre = cliente.Nombre,
-                Email = cliente.Email
+                Email = cliente.Email,
+                Rol = cliente.Rol
             };
         }
     }

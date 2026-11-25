@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using Usaditos2026.BD.Datos.Entity;
+using Usaditos2026.Shared.Constantes;
 
 namespace Usaditos2026.BD.Datos
 {
@@ -22,6 +23,14 @@ namespace Usaditos2026.BD.Datos
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            modelBuilder.Entity<Cliente>(entity =>
+            {
+                entity.Property(c => c.Rol)
+                    .IsRequired()
+                    .HasMaxLength(20)
+                    .HasDefaultValue(RolConstantes.Cliente);
+            });
+
             modelBuilder.Entity<Producto>(entity =>
             {
                 entity.Property(p => p.Nombre).IsRequired().HasMaxLength(200);

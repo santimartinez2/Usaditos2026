@@ -8,6 +8,7 @@ using Usaditos2026.Server.Components;
 using Usaditos2026.Server.Data;
 using Usaditos2026.Servicios;
 using Usaditos2026.Servicios.Interfaces;
+using Usaditos2026.Shared.Constantes;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,6 +19,8 @@ var connectionString = builder.Configuration.GetConnectionString("ConnSqlServer"
 
 builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlServer(connectionString));
 
+builder.Services.AddScoped<IAdminCatalogoRepositorio, AdminCatalogoRepositorio>();
+builder.Services.AddScoped<IAdminCatalogoServicio, AdminCatalogoServicio>();
 builder.Services.AddScoped<ICarritoRepositorio, CarritoRepositorio>();
 builder.Services.AddScoped<ICarritoServicio, CarritoServicio>();
 builder.Services.AddScoped<ICatalogoRepositorio, CatalogoRepositorio>();
@@ -61,7 +64,11 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         };
     });
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy(AutorizacionConstantes.PoliticaSoloAdmin,
+        policy => policy.RequireRole(RolConstantes.Admin));
+});
 builder.Services.AddCascadingAuthenticationState();
 
 builder.Services.AddControllers();
@@ -81,6 +88,7 @@ if (app.Environment.IsDevelopment())
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     await db.Database.MigrateAsync();
     await SeedData.InicializarAsync(db);
+    await SeedData.CrearAdminInicialAsync(db, builder.Configuration, app.Logger);
 }
 
 #region Middleware
