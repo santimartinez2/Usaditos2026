@@ -40,8 +40,31 @@ namespace Usaditos2026.BD.Datos
             modelBuilder.Entity<ItemCarrito>()
                 .Property(i => i.PrecioUnitario).HasPrecision(18, 2);
 
-            modelBuilder.Entity<Pedido>()
-                .Property(p => p.Total).HasPrecision(18, 2);
+            modelBuilder.Entity<Pedido>(entity =>
+            {
+                entity.Property(p => p.Total).HasPrecision(18, 2);
+                entity.Property(p => p.TelefonoContacto)
+                    .IsRequired()
+                    .HasMaxLength(30)
+                    .HasDefaultValue(string.Empty);
+                entity.Property(p => p.TipoEntrega)
+                    .HasConversion<string>()
+                    .IsRequired()
+                    .HasMaxLength(20)
+                    .HasDefaultValue(TipoEntrega.Retiro);
+                entity.Property(p => p.DireccionEnvio).HasMaxLength(300);
+                entity.Property(p => p.NotaCliente).HasMaxLength(500);
+                entity.Property(p => p.MetodoPago)
+                    .HasConversion<string>()
+                    .IsRequired()
+                    .HasMaxLength(20)
+                    .HasDefaultValue(MetodoPago.Efectivo);
+                entity.Property(p => p.EstadoPago)
+                    .HasConversion<string>()
+                    .IsRequired()
+                    .HasMaxLength(20)
+                    .HasDefaultValue(EstadoPago.Pendiente);
+            });
 
             modelBuilder.Entity<ItemPedido>(entity =>
             {
