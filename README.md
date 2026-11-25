@@ -56,7 +56,7 @@ Usaditos2026.Shared
 
 ## 🎯 Caso de Uso Implementado
 
-El proyecto implementa de punta a punta un único caso de uso: **Agregar y eliminar producto del carrito** (actor: Cliente).
+El proyecto implementa de punta a punta dos casos de uso (actor: Cliente): **Agregar y eliminar producto del carrito** y **Confirmar pedido (checkout) e historial de pedidos**. El segundo es solo backend (API REST); no tiene pantallas Blazor.
 
 ### Escenario Principal
 
@@ -84,15 +84,28 @@ El proyecto implementa de punta a punta un único caso de uso: **Agregar y elimi
 - El stock se verifica siempre en el servidor, antes de agregar.
 - Funciona desde dispositivos móviles (diseño responsive).
 
+### Confirmar pedido e historial
+
+1. El cliente confirma el carrito activo desde `POST /api/pedidos`.
+2. El sistema revalida stock y producto activo de cada ítem, crea el pedido en estado `Confirmado`, descuenta el stock y vacía el carrito, todo en una sola transacción.
+3. El cliente consulta `GET /api/pedidos` (resumen, más nuevos primero) y `GET /api/pedidos/{id}` (detalle con ítems).
+4. Si el pedido sigue `Confirmado`, puede cancelarlo con `POST /api/pedidos/{id}/cancelar`: vuelve a `Cancelado` y el stock se devuelve en la misma transacción.
+5. Un pedido `Entregado` o `Cancelado` no se puede cancelar (409). Un pedido de otro cliente da 403.
+
 ---
 
 ## 🧠 Decisiones de Diseño
 
 - **Límite de unidades:** Límite de 3 unidades por producto en el carrito. El tope real de cada producto es el menor entre 3 y su stock disponible.
 - **Persistencia:** El carrito no se conserva al cerrar sesión: se vacía al cerrar y también al iniciar sesión.
-- **Gestión de Stock:** Agregar al carrito no descuenta stock: solo lo valida. El descuento corresponde a la confirmación del pedido, que queda fuera de esta entrega.
-- **Seguridad:** El identificador del cliente sale siempre de la sesión autenticada (nunca de lo que envía el navegador), así un cliente no puede ver ni modificar el carrito de otro.
-- **Fuera de alcance:** Pagos, confirmación de pedido, panel de administración, historial de pedidos y filtros por categoría.
+- **Gestión de Stock:** Agregar al carrito no descuenta stock: solo lo valida. El descuento ocurre al confirmar el pedido; cancelar un pedido confirmado lo devuelve.
+- **Estados del pedido:** `Pendiente`, `Confirmado`, `Entregado` y `Cancelado` en `PedidoConstantes`. El checkout crea pedidos directamente en `Confirmado` (no hay pago).
+- **Snapshot del pedido:** `ItemPedido` guarda copia del nombre y del **precio vigente del producto al confirmar** (`IsRequired`, `nvarchar(200)`), no una referencia al precio del carrito. Así, cambios posteriores en el catálogo no alteran pedidos viejos. El precio del carrito sigue siendo el vigente al agregar.
+- **Transacción:** Confirmar y cancelar usan una sola transacción sobre el `AppDbContext` scoped; si falla algo, se hace rollback (pedido, stock y carrito quedan como estaban).
+- **Concurrencia:** `Producto` y `Pedido` tienen `RowVersion` (`[Timestamp]`) como token de concurrencia. Si dos ventas compiten por el último stock, la segunda obtiene `DbUpdateConcurrencyException`, rollback y un 409 con mensaje claro. Lo mismo al cancelar simultáneamente.
+- **Integridad del historial:** La FK `ItemPedido → Producto` es `DeleteBehavior.Restrict` (`ON DELETE NO ACTION`), para no perder pedidos antiguos si se elimina un producto.
+- **Seguridad:** El identificador del cliente sale siempre de la sesión autenticada (nunca de lo que envía el navegador), así un cliente no puede ver ni modificar el carrito o los pedidos de otro.
+- **Fuera de alcance:** Pagos, panel de administración, filtros por categoría, registro con verificación de email y recuperación de contraseña.
 
 ---
 
@@ -186,7 +199,15 @@ dotnet ef database update --project Usaditos2026.BD --startup-project Usaditos20
 
 # Empezar de cero con una base limpia
 dotnet ef database drop --project Usaditos2026.BD --startup-project Usaditos2026.Server/Usaditos2026.Server --force
+
+# Crear una migración nueva (ejemplo: AgregarPedidos)
+dotnet ef migrations add AgregarPedidos --project Usaditos2026.BD --startup-project Usaditos2026.Server/Usaditos2026.Server
+
+# Revisar el SQL que genera una migración
+dotnet ef migrations script 20260616193125_InitialCreate --project Usaditos2026.BD --startup-project Usaditos2026.Server/Usaditos2026.Server
 ```
+
+La migración `AgregarPedidos` crea `Pedidos` e `ItemsPedido`, agrega `RowVersion` a `Productos` y reduce `Productos.Nombre` a `nvarchar(200)` (no hay nombres tan largos en los datos de prueba).
 
 ---
 
@@ -236,15 +257,31 @@ Se puede probar desde Swagger (`/swagger`). Los endpoints del carrito requieren 
 | `PUT` | `/api/carrito/items/{itemId}` | Modifica la cantidad de un ítem |
 | `DELETE` | `/api/carrito/items/{itemId}` | Elimina un ítem del carrito |
 | `DELETE` | `/api/carrito` | Vacía el carrito |
+| `POST` | `/api/pedidos` | Confirma el carrito (201 con `PedidoDto`) |
+| `GET` | `/api/pedidos` | Mis pedidos (resumen, más nuevos primero) |
+| `GET` | `/api/pedidos/{id}` | Detalle de un pedido propio |
+| `POST` | `/api/pedidos/{id}/cancelar` | Cancela un pedido confirmado y devuelve el stock |
 
 **Códigos de error**
 
 | Código | Significado |
 | :---: | :--- |
+| `400` | Datos inválidos (por ejemplo, cantidad menor a uno) |
 | `401` | No hay sesión iniciada |
-| `403` | El ítem no pertenece al carrito del cliente |
-| `404` | El producto o el ítem no existe |
-| `409` | Sin stock suficiente o límite de unidades superado |
+| `403` | El ítem o el pedido no pertenece al cliente |
+| `404` | El producto, el ítem o el pedido no existe |
+| `409` | Sin stock, límite de unidades, carrito vacío, estado inválido o conflicto de concurrencia |
+
+### Flujo completo en Swagger
+
+1. `POST /api/auth/login` con `{"email":"cliente@usaditos.com","password":"Usaditos123!"}`. La cookie queda guardada en Swagger UI.
+2. `GET /api/productos` para elegir un `id` con stock (por ejemplo, `Remera Básica Blanca`).
+3. `POST /api/carrito/items` con `{"productoId":1,"cantidad":2}` (se puede repetir con otro producto).
+4. `GET /api/carrito` para ver el detalle y el total.
+5. `POST /api/pedidos`: responde `201` con el pedido confirmado; el carrito vuelve a quedar vacío y el stock se descuenta (verificable con otro `GET /api/productos`).
+6. `GET /api/pedidos` y `GET /api/pedidos/{id}` para ver el resumen y el detalle con nombres/precios snapshot.
+7. `POST /api/pedidos/{id}/cancelar`: el pedido pasa a `Cancelado` y el stock se devuelve. Repetirlo da `409`.
+8. `POST /api/pedidos` con el carrito vacío da `409`; `GET /api/pedidos/{id}` de otro cliente da `403`; sin sesión da `401`.
 
 ---
 
@@ -279,4 +316,11 @@ Se puede probar desde Swagger (`/swagger`). Los endpoints del carrito requieren 
 - [x] El carrito se vacía al cerrar e iniciar sesión
 - [x] El cliente solo puede acceder a su propio carrito
 - [x] Diseño responsive para celulares
+- [x] Confirmar pedido en una transacción con revalidación de stock y producto activo
+- [x] Snapshot de nombre y precio en `ItemPedido` (no se ve afectado por cambios del catálogo)
+- [x] Descuento de stock al confirmar y carrito vuelto a vacío
+- [x] Historial de pedidos (resumen y detalle) con control de propiedad
+- [x] Cancelación de pedidos confirmados con devolución de stock en transacción
+- [x] Concurrencia optimista con `RowVersion` en `Producto` y `Pedido` (409)
 - [ ] Contador de unidades del menú actualizado en vivo (hoy se actualiza al navegar entre páginas)
+- [ ] Pantallas Blazor para confirmar pedido y ver el historial (fuera de alcance: solo backend)

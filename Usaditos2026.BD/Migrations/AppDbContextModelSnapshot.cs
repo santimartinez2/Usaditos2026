@@ -114,6 +114,7 @@ namespace Usaditos2026.BD.Migrations
                         .HasColumnType("int");
 
                     b.Property<decimal>("PrecioUnitario")
+                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("ProductoId")
@@ -126,6 +127,76 @@ namespace Usaditos2026.BD.Migrations
                     b.HasIndex("ProductoId");
 
                     b.ToTable("ItemsCarrito");
+                });
+
+            modelBuilder.Entity("Usaditos2026.BD.Datos.Entity.ItemPedido", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("Cantidad")
+                        .HasColumnType("int");
+
+                    b.Property<string>("NombreProducto")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int>("PedidoId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("PrecioUnitario")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("ProductoId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PedidoId");
+
+                    b.HasIndex("ProductoId");
+
+                    b.ToTable("ItemsPedido");
+                });
+
+            modelBuilder.Entity("Usaditos2026.BD.Datos.Entity.Pedido", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ClienteId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Estado")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("Fecha")
+                        .HasColumnType("datetime2");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<decimal>("Total")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClienteId");
+
+                    b.ToTable("Pedidos");
                 });
 
             modelBuilder.Entity("Usaditos2026.BD.Datos.Entity.Producto", b =>
@@ -148,10 +219,18 @@ namespace Usaditos2026.BD.Migrations
 
                     b.Property<string>("Nombre")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<decimal>("Precio")
+                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
 
                     b.Property<int>("StockDisponible")
                         .HasColumnType("int");
@@ -193,6 +272,36 @@ namespace Usaditos2026.BD.Migrations
                     b.Navigation("Producto");
                 });
 
+            modelBuilder.Entity("Usaditos2026.BD.Datos.Entity.ItemPedido", b =>
+                {
+                    b.HasOne("Usaditos2026.BD.Datos.Entity.Pedido", "Pedido")
+                        .WithMany("Items")
+                        .HasForeignKey("PedidoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Usaditos2026.BD.Datos.Entity.Producto", "Producto")
+                        .WithMany("ItemsPedido")
+                        .HasForeignKey("ProductoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Pedido");
+
+                    b.Navigation("Producto");
+                });
+
+            modelBuilder.Entity("Usaditos2026.BD.Datos.Entity.Pedido", b =>
+                {
+                    b.HasOne("Usaditos2026.BD.Datos.Entity.Cliente", "Cliente")
+                        .WithMany()
+                        .HasForeignKey("ClienteId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Cliente");
+                });
+
             modelBuilder.Entity("Usaditos2026.BD.Datos.Entity.Producto", b =>
                 {
                     b.HasOne("Usaditos2026.BD.Datos.Entity.Categoria", "Categoria")
@@ -219,9 +328,16 @@ namespace Usaditos2026.BD.Migrations
                     b.Navigation("Carritos");
                 });
 
+            modelBuilder.Entity("Usaditos2026.BD.Datos.Entity.Pedido", b =>
+                {
+                    b.Navigation("Items");
+                });
+
             modelBuilder.Entity("Usaditos2026.BD.Datos.Entity.Producto", b =>
                 {
                     b.Navigation("ItemsCarrito");
+
+                    b.Navigation("ItemsPedido");
                 });
 #pragma warning restore 612, 618
         }

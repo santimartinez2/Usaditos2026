@@ -23,7 +23,9 @@ builder.Services.AddScoped<ICarritoServicio, CarritoServicio>();
 builder.Services.AddScoped<ICatalogoRepositorio, CatalogoRepositorio>();
 builder.Services.AddScoped<ICatalogoServicio, CatalogoServicio>();
 builder.Services.AddScoped<IClienteRepositorio, ClienteRepositorio>();
+builder.Services.AddScoped<IPedidoRepositorio, PedidoRepositorio>();
 builder.Services.AddScoped<IAuthServicio, AuthServicio>();
+builder.Services.AddScoped<IPedidoServicio, PedidoServicio>();
 
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>

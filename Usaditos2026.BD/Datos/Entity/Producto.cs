@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Text;
 
 namespace Usaditos2026.BD.Datos.Entity
@@ -14,5 +15,8 @@ namespace Usaditos2026.BD.Datos.Entity
         public int CategoriaId { get; set; }
         public Categoria Categoria { get; set; }
         public ICollection<ItemCarrito> ItemsCarrito { get; set; }
+        public ICollection<ItemPedido> ItemsPedido { get; set; }
+        [Timestamp]
+        public byte[] RowVersion { get; set; }
     }
 }
