@@ -50,13 +50,13 @@ Usaditos2026.Shared
 | **Usaditos2026.Server** | `Server.Client`, `Servicios`, `Repositorio`, `BD`, `Shared` |
 
 > **Flujo de una operación:** Página / Controller → Servicio → Repositorio → Base de datos.  
-> *Las reglas de negocio (stock, límite de unidades) viven siempre en la capa de servicios y no en la interfaz.*
+> *Las reglas de negocio (stock, entrega, pago y estados) viven siempre en la capa de servicios y no en la interfaz.*
 
 ---
 
 ## 🎯 Caso de Uso Implementado
 
-El proyecto implementa de punta a punta dos casos de uso (actor: Cliente): **Agregar y eliminar producto del carrito** y **Confirmar pedido (checkout) e historial de pedidos**. El segundo es solo backend (API REST); no tiene pantallas Blazor.
+El proyecto implementa de punta a punta los casos de uso **Agregar y eliminar producto del carrito** (Cliente), **Confirmar pedido (checkout) e historial de pedidos** (Cliente) y **Administrar catálogo y pedidos** (Admin). Los dos últimos son solo backend (API REST); no tienen pantallas Blazor.
 
 ### Escenario Principal
 
@@ -86,11 +86,20 @@ El proyecto implementa de punta a punta dos casos de uso (actor: Cliente): **Agr
 
 ### Confirmar pedido e historial
 
-1. El cliente confirma el carrito activo desde `POST /api/pedidos`.
-2. El sistema revalida stock y producto activo de cada ítem, crea el pedido en estado `Confirmado`, descuenta el stock y vacía el carrito, todo en una sola transacción.
-3. El cliente consulta `GET /api/pedidos` (resumen, más nuevos primero) y `GET /api/pedidos/{id}` (detalle con ítems).
-4. Si el pedido sigue `Confirmado`, puede cancelarlo con `POST /api/pedidos/{id}/cancelar`: vuelve a `Cancelado` y el stock se devuelve en la misma transacción.
-5. Un pedido `Entregado` o `Cancelado` no se puede cancelar (409). Un pedido de otro cliente da 403.
+1. El cliente confirma el carrito activo desde `POST /api/pedidos`, enviando teléfono de contacto, tipo de entrega (`Retiro` o `Envio`), dirección (obligatoria solo si es envío), nota opcional y método de pago (`Efectivo`, `Transferencia` o `MercadoPago`).
+2. El sistema revalida stock y producto activo de cada ítem, crea el pedido en estado `Confirmado` con `EstadoPago = Pendiente`, guarda el snapshot de nombre y precio, descuenta el stock y vacía el carrito, todo en una sola transacción.
+3. El cliente consulta `GET /api/pedidos` (resumen, más nuevos primero) y `GET /api/pedidos/{id}` (detalle con ítems y datos de entrega/pago).
+4. Si el pedido sigue `Confirmado` y no está pagado, puede cancelarlo con `POST /api/pedidos/{id}/cancelar`: vuelve a `Cancelado` y el stock se devuelve en la misma transacción.
+5. Un pedido pagado, listo para retirar, entregado o cancelado no puede ser cancelado por el cliente (409). Un pedido de otro cliente da 403.
+
+### Entrega, pago y administración de pedidos
+
+- `GET /api/tienda` es público y devuelve dirección, horario y datos de transferencia configurados en la sección `Tienda` de `appsettings.json`.
+- El administrador lista y filtra pedidos con `GET /api/admin/pedidos` (`estado`, `estadoPago`, `metodoPago`, `tipoEntrega`, `texto` para nombre/email del cliente, `fechaDesde`, `fechaHasta`, `page`, `pageSize`) y ve el detalle con `GET /api/admin/pedidos/{id}`.
+- El detalle admin incluye `rowVersion` en base64. Cambiar de estado (`POST /{id}/estado`) y registrar pago (`POST /{id}/pago`) requieren ese valor; si está viejo, responde `409` con "El pedido fue modificado, recargá".
+- Los estados son `Confirmado → ListoParaRetirar → Entregado`, con `Cancelado` como salida desde `Confirmado` o `ListoParaRetirar`. No se puede entregar sin `EstadoPago = Pagado`.
+- `MarcarPago` permite `Pendiente`, `Pagado` y `Rechazado`; guarda `FechaPago` cuando es `Pagado` y la limpia en los otros casos. No se puede modificar el pago de un pedido `Entregado` o `Cancelado`.
+- La cancelación del cliente y la del admin comparten la misma lógica de devolución de stock; el admin puede cancelar también un pedido `ListoParaRetirar`.
 
 ---
 
@@ -100,15 +109,18 @@ El proyecto implementa de punta a punta dos casos de uso (actor: Cliente): **Agr
 - **Persistencia:** El carrito no se conserva al cerrar sesión: se vacía al cerrar y también al iniciar sesión.
 - **Catálogo público:** `/catalogo` se puede ver sin sesión. Al intentar agregar un producto sin sesión se va a `/login?returnUrl=/catalogo`; el login valida el `returnUrl` recibido en el POST y solo acepta rutas locales (`RetornoSeguro`), para evitar open redirects. `/carrito`, el checkout y los endpoints `/api/carrito` y `/api/pedidos` siguen requiriendo sesión; `/api/productos` es público.
 - **Gestión de Stock:** Agregar al carrito no descuenta stock: solo lo valida. El descuento ocurre al confirmar el pedido; cancelar un pedido confirmado lo devuelve.
-- **Estados del pedido:** `Pendiente`, `Confirmado`, `Entregado` y `Cancelado` en `PedidoConstantes`. El checkout crea pedidos directamente en `Confirmado` (no hay pago).
+- **Estados del pedido:** `Pendiente` se usa solo para el pago; los estados del pedido son `Confirmado`, `ListoParaRetirar`, `Entregado` y `Cancelado` en `PedidoConstantes`. El checkout crea pedidos directamente en `Confirmado` con pago `Pendiente`.
+- **Entrega y pago:** `TipoEntrega` (`Retiro`/`Envio`), `MetodoPago` (`Efectivo`/`Transferencia`/`MercadoPago`) y `EstadoPago` (`Pendiente`/`Pagado`/`Rechazado`) son enums C# con conversión a string en EF (`nvarchar(20)`); la API acepta y devuelve solo strings (`JsonStringEnumConverter` sin números). La dirección es obligatoria en envío y se descarta en retiro; el teléfono se valida en servidor.
 - **Snapshot del pedido:** `ItemPedido` guarda copia del nombre y del **precio vigente del producto al confirmar** (`IsRequired`, `nvarchar(200)`), no una referencia al precio del carrito. Así, cambios posteriores en el catálogo no alteran pedidos viejos. El precio del carrito sigue siendo el vigente al agregar.
 - **Transacción:** Confirmar y cancelar usan una sola transacción sobre el `AppDbContext` scoped; si falla algo, se hace rollback (pedido, stock y carrito quedan como estaban).
-- **Concurrencia:** `Producto` y `Pedido` tienen `RowVersion` (`[Timestamp]`) como token de concurrencia. Si dos ventas compiten por el último stock, la segunda obtiene `DbUpdateConcurrencyException`, rollback y un 409 con mensaje claro. Lo mismo al cancelar simultáneamente.
+- **Concurrencia:** `Producto` y `Pedido` tienen `RowVersion` (`[Timestamp]`) como token de concurrencia. Si dos ventas compiten por el último stock, la segunda obtiene `DbUpdateConcurrencyException`, rollback y un 409 con mensaje claro. Lo mismo al cancelar simultáneamente o al usar un `rowVersion` viejo desde el panel admin.
+- **Cancelación:** El cliente solo cancela pedidos `Confirmado` con pago `Pendiente`. El admin puede cancelar también `ListoParaRetirar`. En ambos casos el stock se devuelve en la misma transacción y un estado inválido responde 409.
 - **Integridad del historial:** La FK `ItemPedido → Producto` es `DeleteBehavior.Restrict` (`ON DELETE NO ACTION`), para no perder pedidos antiguos si se elimina un producto.
 - **Seguridad:** El identificador del cliente sale siempre de la sesión autenticada (nunca de lo que envía el navegador), así un cliente no puede ver ni modificar el carrito o los pedidos de otro. El `Rol` tampoco viaja en el registro: siempre se crea como `Cliente`; el claim `ClaimTypes.Role` se arma al iniciar sesión y la política `SoloAdmin` protege `/api/admin/*`.
 - **Admin inicial:** `SeedData.CrearAdminInicialAsync` es un paso separado e idempotente (no depende de que existan categorías). Solo crea el admin si no hay otro con rol `Admin` y si `AdminInicial:Email`/`AdminInicial:Password` están configurados. Si el email ya pertenece a un cliente, omite la creación y deja un `LogWarning`; si no hay configuración, no crea nada y no falla.
 - **ABM de administrador:** Solo API REST (`/api/admin/categorias` y `/api/admin/productos`). La baja de productos es lógica (`Activo = false`), nunca física, porque los pedidos los referencian. `ProductoAdminDto` expone `RowVersion` como base64; editar, desactivar y activar envían ese valor en la request y el servicio lo copia a `OriginalValues["RowVersion"]`, por lo que un valor viejo produce 409 ("El producto fue modificado, recargá").
-- **Fuera de alcance:** Pagos, pantallas Blazor del panel de administración, filtros por categoría, registro con verificación de email y recuperación de contraseña.
+- **Administración de pedidos:** Solo API REST (`/api/admin/pedidos`). Listado paginado y filtrable, detalle con `rowVersion`, transiciones de estado y registro de pago. No se agregaron páginas Blazor.
+- **Fuera de alcance:** Pasarela de pago real / cobro online, pantallas Blazor del panel de administración, filtros por categoría, registro con verificación de email y recuperación de contraseña. El sistema solo registra el estado del pago que confirma el admin.
 
 ---
 
@@ -210,7 +222,7 @@ dotnet ef migrations add AgregarPedidos --project Usaditos2026.BD --startup-proj
 dotnet ef migrations script 20260616193125_InitialCreate --project Usaditos2026.BD --startup-project Usaditos2026.Server/Usaditos2026.Server
 ```
 
-La migración `AgregarPedidos` crea `Pedidos` e `ItemsPedido`, agrega `RowVersion` a `Productos` y reduce `Productos.Nombre` a `nvarchar(200)` (no hay nombres tan largos en los datos de prueba). La migración `AgregarRolCliente` agrega `Clientes.Rol` como `nvarchar(20)` no nulo con valor por defecto `Cliente`, así los clientes ya existentes quedan con ese rol sin necesidad de backfill manual.
+La migración `AgregarPedidos` crea `Pedidos` e `ItemsPedido`, agrega `RowVersion` a `Productos` y reduce `Productos.Nombre` a `nvarchar(200)` (no hay nombres tan largos en los datos de prueba). `AgregarRolCliente` agrega `Clientes.Rol` como `nvarchar(20)` no nulo con valor por defecto `Cliente`. `AgregarEntregaYPagoPedido` agrega los campos de entrega/pago en `Pedidos` (`nvarchar(20)` para los enums, con defaults `Retiro`, `Efectivo` y `Pendiente`), sin backfill manual.
 
 ---
 
@@ -269,10 +281,20 @@ Se puede probar desde Swagger (`/swagger`). `/api/productos` es público; los en
 | `PUT` | `/api/carrito/items/{itemId}` | Modifica la cantidad de un ítem |
 | `DELETE` | `/api/carrito/items/{itemId}` | Elimina un ítem del carrito |
 | `DELETE` | `/api/carrito` | Vacía el carrito |
-| `POST` | `/api/pedidos` | Confirma el carrito (201 con `PedidoDto`) |
+| `GET` | `/api/tienda` | Datos públicos de dirección, horario y transferencia |
+| `POST` | `/api/pedidos` | Confirma el carrito con datos de entrega/pago (201 con `PedidoDto`) |
 | `GET` | `/api/pedidos` | Mis pedidos (resumen, más nuevos primero) |
 | `GET` | `/api/pedidos/{id}` | Detalle de un pedido propio |
-| `POST` | `/api/pedidos/{id}/cancelar` | Cancela un pedido confirmado y devuelve el stock |
+| `POST` | `/api/pedidos/{id}/cancelar` | Cancela un pedido confirmado y no pagado, y devuelve el stock |
+
+**Gestión de pedidos (solo Admin)**
+
+| Método | Ruta | Descripción |
+| :---: | :--- | :--- |
+| `GET` | `/api/admin/pedidos` | Lista pedidos con filtros y paginación |
+| `GET` | `/api/admin/pedidos/{id}` | Detalle de un pedido (incluye `rowVersion`) |
+| `POST` | `/api/admin/pedidos/{id}/estado` | Pasa a `ListoParaRetirar`, `Entregado` o `Cancelado` (requiere `rowVersion`) |
+| `POST` | `/api/admin/pedidos/{id}/pago` | Registra `Pendiente`, `Pagado` o `Rechazado` (requiere `rowVersion`) |
 
 **ABM de catálogo (solo Admin)**
 
@@ -293,11 +315,11 @@ Se puede probar desde Swagger (`/swagger`). `/api/productos` es público; los en
 
 | Código | Significado |
 | :---: | :--- |
-| `400` | Datos inválidos (por ejemplo, cantidad menor a uno o `rowVersion` vacío) |
+| `400` | Datos inválidos (cantidad menor a uno, enum inválido, teléfono/dirección faltante o `rowVersion` vacío) |
 | `401` | No hay sesión iniciada |
 | `403` | El ítem o el pedido no pertenece al cliente; o el usuario no es Admin |
 | `404` | El producto, el ítem, el pedido o la categoría no existe |
-| `409` | Sin stock, carrito vacío, estado inválido, nombre de categoría duplicado, categoría con productos, producto modificado por otro admin o conflicto de concurrencia del checkout |
+| `409` | Sin stock, carrito vacío, estado de pedido/pago inválido, nombre de categoría duplicado, categoría con productos, producto o pedido modificado por otro usuario, o conflicto de concurrencia del checkout |
 
 ### Flujo completo en Swagger
 
@@ -305,10 +327,11 @@ Se puede probar desde Swagger (`/swagger`). `/api/productos` es público; los en
 2. `GET /api/productos` para elegir un `id` con stock (por ejemplo, `Remera Básica Blanca`).
 3. `POST /api/carrito/items` con `{"productoId":1,"cantidad":2}` (se puede repetir con otro producto).
 4. `GET /api/carrito` para ver el detalle y el total.
-5. `POST /api/pedidos`: responde `201` con el pedido confirmado; el carrito vuelve a quedar vacío y el stock se descuenta (verificable con otro `GET /api/productos`).
-6. `GET /api/pedidos` y `GET /api/pedidos/{id}` para ver el resumen y el detalle con nombres/precios snapshot.
-7. `POST /api/pedidos/{id}/cancelar`: el pedido pasa a `Cancelado` y el stock se devuelve. Repetirlo da `409`.
-8. `POST /api/pedidos` con el carrito vacío da `409`; `GET /api/pedidos/{id}` de otro cliente da `403`; sin sesión da `401`.
+5. `GET /api/tienda` para ver los datos configurados (público).
+6. `POST /api/pedidos` con `{"telefonoContacto":"3511234567","tipoEntrega":"Retiro","metodoPago":"Efectivo","notaCliente":"Dejar en mostrador"}`: responde `201` con el pedido confirmado, `estadoPago: "Pendiente"` y `fechaPago: null`; el carrito vuelve a quedar vacío y el stock se descuenta.
+7. `GET /api/pedidos` y `GET /api/pedidos/{id}` para ver el resumen y el detalle con nombres/precios snapshot y datos de entrega/pago.
+8. `POST /api/pedidos/{id}/cancelar`: el pedido pasa a `Cancelado` y el stock se devuelve. Repetirlo da `409` porque el pago sigue pendiente pero el estado ya no es `Confirmado`.
+9. `POST /api/pedidos` con el carrito vacío o con `tipoEntrega: "Envio"` sin dirección da `409`/`400` respectivamente; `GET /api/pedidos/{id}` de otro cliente da `403`; sin sesión da `401`.
 
 ### Flujo admin en Swagger
 
@@ -322,6 +345,17 @@ Se puede probar desde Swagger (`/swagger`). `/api/productos` es público; los en
 8. `POST /api/admin/productos/{id}/activar` con el `rowVersion` devuelto por el listado admin → vuelve a aparecer en el catálogo público.
 9. `DELETE /api/admin/categorias/{id}` de una categoría con productos da `409`; `DELETE` de una categoría vacía da `204`.
 10. Hacer logout y loguearse como `cliente@usaditos.com`: cualquier `/api/admin/*` responde `403`. Sin sesión responde `401`.
+
+### Flujo de pedidos en Swagger (Admin)
+
+1. Loguearse como `admin@usaditos.com` y crear un pedido con el cliente (o usar uno existente de `GET /api/admin/pedidos`).
+2. `GET /api/admin/pedidos` con `?estado=Confirmado&page=1&pageSize=10`; probar también `texto=cliente@usaditos.com`, `metodoPago=Efectivo` y `fechaHasta` (incluye el día completo).
+3. `GET /api/admin/pedidos/{id}` y copiar el `rowVersion` devuelto.
+4. `POST /api/admin/pedidos/{id}/pago` con `{"estadoPago":"Pagado","rowVersion":"<base64 actual>"}`; responde el pedido con `fechaPago`.
+5. Repetir el `POST /api/admin/pedidos/{id}/pago` con el `rowVersion` viejo: responde `409` con "El pedido fue modificado, recargá".
+6. Con el `rowVersion` actual, `POST /api/admin/pedidos/{id}/estado` con `{"nuevoEstado":"ListoParaRetirar","rowVersion":"<base64 actual>"}` y después `{"nuevoEstado":"Entregado","rowVersion":"<base64 actual>"}`.
+7. Probar entregar un pedido impago da `409`; marcar pago de uno `Entregado` o `Cancelado` también da `409`.
+8. `POST /api/admin/pedidos/{id}/estado` con `{"nuevoEstado":"Cancelado","rowVersion":"<base64 actual>"}` devuelve el stock. Un cliente con pedido pagado ya no puede cancelarlo por `/api/pedidos/{id}/cancelar`.
 
 ---
 
@@ -369,5 +403,13 @@ Se puede probar desde Swagger (`/swagger`). `/api/productos` es público; los en
 - [x] ABM de categorías por API (alta, modificación y baja con validación de productos asociados)
 - [x] ABM de productos por API (alta, modificación, baja lógica y reactivación)
 - [x] Concurrencia optimista en el ABM mediante `rowVersion` enviado por el cliente (409)
+- [x] Checkout con teléfono, tipo de entrega, dirección condicional, nota y método de pago
+- [x] Enums de entrega/pago como strings en EF y en la API (sin aceptar números)
+- [x] `GET /api/tienda` público con dirección, horario y transferencia desde configuración
+- [x] Listado admin de pedidos paginado, filtrable y con detalle
+- [x] Transiciones admin `ListoParaRetirar`/`Entregado` con validación de pago
+- [x] Registro admin de pago con `rowVersion` y 409 por valor viejo
+- [x] Cancelación compartida cliente/admin con devolución de stock en transacción
+- [x] Migración `AgregarEntregaYPagoPedido` con defaults y longitudes revisadas
 - [ ] Contador de unidades del menú actualizado en vivo (hoy se actualiza al navegar entre páginas)
 - [ ] Pantallas Blazor para confirmar pedido y ver el historial (fuera de alcance: solo backend)

@@ -20,15 +20,19 @@ namespace Usaditos2026.Server.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<PedidoDto>> ConfirmarPedido()
+        public async Task<ActionResult<PedidoDto>> ConfirmarPedido([FromBody] ConfirmarPedidoRequest request)
         {
             if (!TryObtenerClienteId(out var clienteId))
                 return Unauthorized();
 
             try
             {
-                var pedido = await _pedidoServicio.ConfirmarPedidoAsync(clienteId);
+                var pedido = await _pedidoServicio.ConfirmarPedidoAsync(clienteId, request);
                 return CreatedAtAction(nameof(ObtenerPedido), new { id = pedido.Id }, pedido);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { mensaje = ex.Message });
             }
             catch (CarritoVacioException ex)
             {
@@ -87,6 +91,10 @@ namespace Usaditos2026.Server.Controllers
                 return Ok(pedido);
             }
             catch (EstadoPedidoInvalidoException ex)
+            {
+                return Conflict(new { mensaje = ex.Message });
+            }
+            catch (PedidoModificadoException ex)
             {
                 return Conflict(new { mensaje = ex.Message });
             }

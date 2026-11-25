@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 using Usaditos2026.BD.Datos;
@@ -9,6 +10,7 @@ using Usaditos2026.Server.Data;
 using Usaditos2026.Servicios;
 using Usaditos2026.Servicios.Interfaces;
 using Usaditos2026.Shared.Constantes;
+using Usaditos2026.Shared.DTOs;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,6 +23,8 @@ builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlServer(conn
 
 builder.Services.AddScoped<IAdminCatalogoRepositorio, AdminCatalogoRepositorio>();
 builder.Services.AddScoped<IAdminCatalogoServicio, AdminCatalogoServicio>();
+builder.Services.AddScoped<IAdminPedidoRepositorio, AdminPedidoRepositorio>();
+builder.Services.AddScoped<IAdminPedidoServicio, AdminPedidoServicio>();
 builder.Services.AddScoped<ICarritoRepositorio, CarritoRepositorio>();
 builder.Services.AddScoped<ICarritoServicio, CarritoServicio>();
 builder.Services.AddScoped<ICatalogoRepositorio, CatalogoRepositorio>();
@@ -29,6 +33,8 @@ builder.Services.AddScoped<IClienteRepositorio, ClienteRepositorio>();
 builder.Services.AddScoped<IPedidoRepositorio, PedidoRepositorio>();
 builder.Services.AddScoped<IAuthServicio, AuthServicio>();
 builder.Services.AddScoped<IPedidoServicio, PedidoServicio>();
+builder.Services.AddScoped<ITiendaServicio, TiendaServicio>();
+builder.Services.Configure<TiendaInfoDto>(builder.Configuration.GetSection("Tienda"));
 
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
@@ -71,7 +77,10 @@ builder.Services.AddAuthorization(options =>
 });
 builder.Services.AddCascadingAuthenticationState();
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+        options.JsonSerializerOptions.Converters.Add(
+            new JsonStringEnumConverter(allowIntegerValues: false)));
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddRazorComponents()

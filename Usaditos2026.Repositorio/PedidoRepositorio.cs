@@ -36,6 +36,13 @@ namespace Usaditos2026.Repositorio
                 .FirstOrDefaultAsync(p => p.Id == pedidoId);
         }
 
+        public async Task<Pedido?> ObtenerPedidoParaEdicionAsync(int pedidoId)
+        {
+            return await _context.Pedidos
+                .Include(p => p.Items)
+                .FirstOrDefaultAsync(p => p.Id == pedidoId);
+        }
+
         public async Task<List<Pedido>> ObtenerPedidosDeClienteAsync(int clienteId)
         {
             return await _context.Pedidos
@@ -44,6 +51,12 @@ namespace Usaditos2026.Repositorio
                 .OrderByDescending(p => p.Fecha)
                 .ThenByDescending(p => p.Id)
                 .ToListAsync();
+        }
+
+        public Task EstablecerRowVersionOriginalAsync(Pedido pedido, byte[] rowVersion)
+        {
+            _context.Entry(pedido).OriginalValues["RowVersion"] = rowVersion;
+            return Task.CompletedTask;
         }
 
         public async Task GuardarCambiosAsync()

@@ -19,8 +19,10 @@ namespace Usaditos2026.Servicios
             _carritoRepositorio = carritoRepositorio;
         }
 
-        public async Task<PedidoDto> ConfirmarPedidoAsync(int clienteId)
+        public async Task<PedidoDto> ConfirmarPedidoAsync(int clienteId, ConfirmarPedidoRequest datos)
         {
+            var entrega = ValidarDatosEntregaPago(datos);
+
             var transaccion = await _pedidoRepositorio.IniciarTransaccionAsync();
             await using (transaccion)
             {
@@ -31,7 +33,6 @@ namespace Usaditos2026.Servicios
                     if (carrito?.Items is null || !carrito.Items.Any())
                         throw new CarritoVacioException("El carrito está vacío. Agregá productos antes de confirmar el pedido.");
 
-                    // Se releen los productos dentro de la transacción para que RowVersion detecte ventas simultáneas.
                     var productosPorId = new Dictionary<int, Producto>();
                     foreach (var item in carrito.Items)
                     {
@@ -50,12 +51,18 @@ namespace Usaditos2026.Servicios
                         ClienteId = clienteId,
                         Fecha = DateTime.UtcNow,
                         Estado = PedidoConstantes.EstadoConfirmado,
+                        TelefonoContacto = entrega.Telefono,
+                        TipoEntrega = entrega.TipoEntrega,
+                        DireccionEnvio = entrega.DireccionEnvio,
+                        NotaCliente = entrega.NotaCliente,
+                        MetodoPago = entrega.MetodoPago,
+                        EstadoPago = EstadoPago.Pendiente,
+                        FechaPago = null,
                         Items = carrito.Items.Select(item => new ItemPedido
                         {
                             ProductoId = item.ProductoId,
                             NombreProducto = productosPorId[item.ProductoId].Nombre,
                             Cantidad = item.Cantidad,
-                            // Snapshot del precio vigente al confirmar, no del precio guardado en el carrito.
                             PrecioUnitario = productosPorId[item.ProductoId].Precio
                         }).ToList()
                     };
@@ -66,7 +73,6 @@ namespace Usaditos2026.Servicios
                     foreach (var item in carrito.Items)
                         productosPorId[item.ProductoId].StockDisponible -= item.Cantidad;
 
-                    // El carrito sigue Activo pero vuelve a empezar vacío.
                     await _carritoRepositorio.EliminarTodosLosItemsAsync(carrito.Id);
                     await _pedidoRepositorio.GuardarCambiosAsync();
                     await transaccion.CommitAsync();
@@ -96,6 +102,13 @@ namespace Usaditos2026.Servicios
                 Id = p.Id,
                 Fecha = p.Fecha,
                 Estado = p.Estado,
+                TelefonoContacto = p.TelefonoContacto,
+                TipoEntrega = p.TipoEntrega,
+                DireccionEnvio = p.DireccionEnvio,
+                NotaCliente = p.NotaCliente,
+                MetodoPago = p.MetodoPago,
+                EstadoPago = p.EstadoPago,
+                FechaPago = p.FechaPago,
                 Total = p.Total,
                 CantidadItems = p.Items?.Sum(i => i.Cantidad) ?? 0
             }).ToList();
@@ -115,20 +128,8 @@ namespace Usaditos2026.Servicios
                 try
                 {
                     var pedido = await ObtenerPedidoDelClienteAsync(clienteId, pedidoId);
-
-                    if (pedido.Estado != PedidoConstantes.EstadoConfirmado)
-                        throw new EstadoPedidoInvalidoException(
-                            $"El pedido no se puede cancelar porque está {pedido.Estado}.");
-
-                    foreach (var item in pedido.Items)
-                    {
-                        var producto = await _carritoRepositorio.ObtenerProductoAsync(item.ProductoId);
-                        if (producto is not null)
-                            producto.StockDisponible += item.Cantidad;
-                    }
-
-                    pedido.Estado = PedidoConstantes.EstadoCancelado;
-                    await _pedidoRepositorio.GuardarCambiosAsync();
+                    ValidarCancelacionDelCliente(pedido);
+                    await CancelarPedidoEnTransaccionAsync(pedido, null);
                     await transaccion.CommitAsync();
 
                     return MapearAPedidoDto(pedido);
@@ -136,8 +137,7 @@ namespace Usaditos2026.Servicios
                 catch (DbUpdateConcurrencyException)
                 {
                     await transaccion.RollbackAsync();
-                    throw new InvalidOperationException(
-                        "No se pudo cancelar el pedido porque otro proceso modificó el pedido o el stock. Intentá de nuevo.");
+                    throw new PedidoModificadoException("El pedido fue modificado, recargá.");
                 }
                 catch
                 {
@@ -145,6 +145,113 @@ namespace Usaditos2026.Servicios
                     throw;
                 }
             }
+        }
+
+        public async Task<PedidoDto> CancelarPedidoComoAdminAsync(int pedidoId, byte[] rowVersion)
+        {
+            ValidarRowVersion(rowVersion);
+
+            var transaccion = await _pedidoRepositorio.IniciarTransaccionAsync();
+            await using (transaccion)
+            {
+                try
+                {
+                    var pedido = await _pedidoRepositorio.ObtenerPedidoParaEdicionAsync(pedidoId)
+                        ?? throw new KeyNotFoundException("El pedido no existe.");
+
+                    await CancelarPedidoEnTransaccionAsync(pedido, rowVersion);
+                    await transaccion.CommitAsync();
+
+                    return MapearAPedidoDto(pedido);
+                }
+                catch (DbUpdateConcurrencyException)
+                {
+                    await transaccion.RollbackAsync();
+                    throw new PedidoModificadoException("El pedido fue modificado, recargá.");
+                }
+                catch
+                {
+                    await transaccion.RollbackAsync();
+                    throw;
+                }
+            }
+        }
+
+        private async Task CancelarPedidoEnTransaccionAsync(Pedido pedido, byte[]? rowVersion)
+        {
+            if (pedido.Estado != PedidoConstantes.EstadoConfirmado &&
+                pedido.Estado != PedidoConstantes.EstadoListoParaRetirar)
+                throw new EstadoPedidoInvalidoException(
+                    $"El pedido no se puede cancelar porque está {pedido.Estado}.");
+
+            foreach (var item in pedido.Items ?? new List<ItemPedido>())
+            {
+                var producto = await _carritoRepositorio.ObtenerProductoAsync(item.ProductoId);
+                if (producto is not null)
+                    producto.StockDisponible += item.Cantidad;
+            }
+
+            pedido.Estado = PedidoConstantes.EstadoCancelado;
+
+            if (rowVersion is not null)
+                await _pedidoRepositorio.EstablecerRowVersionOriginalAsync(pedido, rowVersion);
+
+            await _pedidoRepositorio.GuardarCambiosAsync();
+        }
+
+        private static void ValidarCancelacionDelCliente(Pedido pedido)
+        {
+            if (pedido.Estado != PedidoConstantes.EstadoConfirmado || pedido.EstadoPago != EstadoPago.Pendiente)
+                throw new EstadoPedidoInvalidoException(
+                    "El pedido ya está pagado o listo para retirar; pedile al local que lo cancele.");
+        }
+
+        private static void ValidarRowVersion(byte[] rowVersion)
+        {
+            if (rowVersion is null || rowVersion.Length == 0)
+                throw new ArgumentException("El RowVersion es obligatorio. Obtenelo con GET /api/admin/pedidos/{id}.");
+        }
+
+        private static (
+            string Telefono,
+            TipoEntrega TipoEntrega,
+            string? DireccionEnvio,
+            MetodoPago MetodoPago,
+            string? NotaCliente) ValidarDatosEntregaPago(ConfirmarPedidoRequest datos)
+        {
+            if (datos is null)
+                throw new ArgumentException("Los datos de entrega y pago son obligatorios.");
+
+            var telefono = datos.TelefonoContacto?.Trim() ?? string.Empty;
+            if (telefono.Length == 0)
+                throw new ArgumentException("El teléfono de contacto es obligatorio.");
+            if (telefono.Length > 30)
+                throw new ArgumentException("El teléfono no puede superar los 30 caracteres.");
+            if (telefono.Any(c => !(char.IsDigit(c) || c == ' ' || c == '+' || c == '-' || c == '(' || c == ')')))
+                throw new ArgumentException("El teléfono solo puede tener dígitos, espacios, +, - y paréntesis.");
+            if (telefono.Count(char.IsDigit) < 6)
+                throw new ArgumentException("El teléfono debe tener al menos 6 dígitos.");
+
+            if (!datos.TipoEntrega.HasValue || !Enum.IsDefined(datos.TipoEntrega.Value))
+                throw new ArgumentException("El tipo de entrega es inválido.");
+            if (!datos.MetodoPago.HasValue || !Enum.IsDefined(datos.MetodoPago.Value))
+                throw new ArgumentException("El método de pago es inválido.");
+
+            var direccion = datos.DireccionEnvio?.Trim();
+            if (datos.TipoEntrega.Value == TipoEntrega.Envio && string.IsNullOrEmpty(direccion))
+                throw new ArgumentException("La dirección de envío es obligatoria.");
+            if (direccion is not null && direccion.Length > 300)
+                throw new ArgumentException("La dirección de envío no puede superar los 300 caracteres.");
+            if (datos.TipoEntrega.Value == TipoEntrega.Retiro)
+                direccion = null;
+
+            var nota = datos.NotaCliente?.Trim();
+            if (string.IsNullOrEmpty(nota))
+                nota = null;
+            if (nota is not null && nota.Length > 500)
+                throw new ArgumentException("La nota del cliente no puede superar los 500 caracteres.");
+
+            return (telefono, datos.TipoEntrega.Value, direccion, datos.MetodoPago.Value, nota);
         }
 
         private async Task<Pedido> ObtenerPedidoDelClienteAsync(int clienteId, int pedidoId)
@@ -165,6 +272,13 @@ namespace Usaditos2026.Servicios
                 Id = pedido.Id,
                 Fecha = pedido.Fecha,
                 Estado = pedido.Estado,
+                TelefonoContacto = pedido.TelefonoContacto,
+                TipoEntrega = pedido.TipoEntrega,
+                DireccionEnvio = pedido.DireccionEnvio,
+                NotaCliente = pedido.NotaCliente,
+                MetodoPago = pedido.MetodoPago,
+                EstadoPago = pedido.EstadoPago,
+                FechaPago = pedido.FechaPago,
                 Items = (pedido.Items ?? new List<ItemPedido>()).Select(i => new ItemPedidoDto
                 {
                     ProductoId = i.ProductoId,
