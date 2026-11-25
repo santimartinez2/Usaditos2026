@@ -34,6 +34,7 @@ namespace Usaditos2026.BD.Datos
             modelBuilder.Entity<Producto>(entity =>
             {
                 entity.Property(p => p.Nombre).IsRequired().HasMaxLength(200);
+                entity.Property(p => p.ImagenUrl).HasMaxLength(300);
                 entity.Property(p => p.Precio).HasPrecision(18, 2);
             });
 

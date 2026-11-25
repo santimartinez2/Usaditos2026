@@ -12,6 +12,7 @@ namespace Usaditos2026.BD.Datos.Entity
         public decimal Precio { get; set; }
         public int StockDisponible { get; set; }
         public bool Activo { get; set; }
+        public string? ImagenUrl { get; set; }
         public int CategoriaId { get; set; }
         public Categoria Categoria { get; set; }
         public ICollection<ItemCarrito> ItemsCarrito { get; set; }

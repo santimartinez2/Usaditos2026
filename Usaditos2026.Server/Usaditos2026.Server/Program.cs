@@ -1,12 +1,15 @@
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.FileProviders;
 using Usaditos2026.BD.Datos;
 using Usaditos2026.Repositorio;
 using Usaditos2026.Repositorio.Interfaces;
 using Usaditos2026.Server.Client.Pages;
 using Usaditos2026.Server.Components;
 using Usaditos2026.Server.Data;
+using Usaditos2026.Server.Storage;
 using Usaditos2026.Servicios;
 using Usaditos2026.Servicios.Interfaces;
 using Usaditos2026.Shared.Constantes;
@@ -34,7 +37,9 @@ builder.Services.AddScoped<IPedidoRepositorio, PedidoRepositorio>();
 builder.Services.AddScoped<IAuthServicio, AuthServicio>();
 builder.Services.AddScoped<IPedidoServicio, PedidoServicio>();
 builder.Services.AddScoped<ITiendaServicio, TiendaServicio>();
+builder.Services.AddScoped<IAlmacenImagenes, AlmacenImagenes>();
 builder.Services.Configure<TiendaInfoDto>(builder.Configuration.GetSection("Tienda"));
+builder.Services.Configure<ImagenesOpciones>(builder.Configuration.GetSection("Imagenes"));
 
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
@@ -91,6 +96,13 @@ builder.Services.AddRazorComponents()
 
 var app = builder.Build();
 
+// Las imágenes se guardan fuera de wwwroot y se sirven desde una ruta pública inmutable.
+var opcionesImagenes = builder.Configuration.GetSection("Imagenes").Get<ImagenesOpciones>() ?? new ImagenesOpciones();
+var rutaImagenes = Path.IsPathRooted(opcionesImagenes.Ruta)
+    ? opcionesImagenes.Ruta
+    : Path.Combine(builder.Environment.ContentRootPath, opcionesImagenes.Ruta.Replace('/', Path.DirectorySeparatorChar));
+Directory.CreateDirectory(rutaImagenes);
+
 if (app.Environment.IsDevelopment())
 {
     using var scope = app.Services.CreateScope();
@@ -122,6 +134,17 @@ app.UseWhen(
     });
 
 app.UseHttpsRedirection();
+
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(rutaImagenes),
+    RequestPath = ImagenesConstantes.RutaPublica,
+    OnPrepareResponse = ctx =>
+    {
+        ctx.Context.Response.Headers["Cache-Control"] = "public, max-age=31536000, immutable";
+        ctx.Context.Response.Headers["X-Content-Type-Options"] = "nosniff";
+    }
+});
 
 app.UseAuthentication();
 app.UseAuthorization();

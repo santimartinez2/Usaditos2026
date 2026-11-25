@@ -43,8 +43,8 @@ namespace Usaditos2026.Repositorio
 
             if (filtros.FechaHasta.HasValue)
             {
-                var hasta = filtros.FechaHasta.Value.Date.AddDays(1);
-                query = query.Where(p => p.Fecha < hasta);
+                // El servicio ya convirtió el día local (exclusivo) a UTC.
+                query = query.Where(p => p.Fecha < filtros.FechaHasta.Value);
             }
 
             if (!string.IsNullOrWhiteSpace(filtros.Texto))

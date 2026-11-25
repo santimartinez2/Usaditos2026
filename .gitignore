@@ -361,3 +361,6 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# Imágenes de productos subidas por los administradores
+App_Data/uploads/productos/
