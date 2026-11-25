@@ -1,7 +1,10 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Usaditos2026.BD.Datos;
 using Usaditos2026.BD.Datos.Entity;
+using Usaditos2026.Shared.Constantes;
 
 namespace Usaditos2026.Server.Data
 {
@@ -130,6 +133,48 @@ namespace Usaditos2026.Server.Data
             cliente.PasswordHash = hasher.HashPassword(cliente, "Usaditos123!");
 
             context.Clientes.Add(cliente);
+            await context.SaveChangesAsync();
+        }
+
+        public static async Task CrearAdminInicialAsync(
+            AppDbContext context,
+            IConfiguration configuration,
+            ILogger logger)
+        {
+            var email = configuration["AdminInicial:Email"];
+            var password = configuration["AdminInicial:Password"];
+
+            if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
+                return;
+
+            if (await context.Clientes.AnyAsync(c => c.Rol == RolConstantes.Admin))
+                return;
+
+            var emailNormalizado = email.Trim().ToLowerInvariant();
+            var clienteExistente = await context.Clientes
+                .FirstOrDefaultAsync(c => c.Email == emailNormalizado);
+
+            if (clienteExistente is not null)
+            {
+                logger.LogWarning(
+                    "No se creó el admin inicial: ya existe un cliente con el email {Email} y rol {Rol}. Revisá AdminInicial:Email.",
+                    emailNormalizado,
+                    clienteExistente.Rol);
+                return;
+            }
+
+            var admin = new Cliente
+            {
+                Nombre = "Administrador",
+                Email = emailNormalizado,
+                Rol = RolConstantes.Admin,
+                FechaRegistro = DateTime.UtcNow,
+                Activo = true
+            };
+
+            admin.PasswordHash = new PasswordHasher<Cliente>().HashPassword(admin, password);
+
+            context.Clientes.Add(admin);
             await context.SaveChangesAsync();
         }
     }

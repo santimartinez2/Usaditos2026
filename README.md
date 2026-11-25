@@ -105,8 +105,10 @@ El proyecto implementa de punta a punta dos casos de uso (actor: Cliente): **Agr
 - **Transacción:** Confirmar y cancelar usan una sola transacción sobre el `AppDbContext` scoped; si falla algo, se hace rollback (pedido, stock y carrito quedan como estaban).
 - **Concurrencia:** `Producto` y `Pedido` tienen `RowVersion` (`[Timestamp]`) como token de concurrencia. Si dos ventas compiten por el último stock, la segunda obtiene `DbUpdateConcurrencyException`, rollback y un 409 con mensaje claro. Lo mismo al cancelar simultáneamente.
 - **Integridad del historial:** La FK `ItemPedido → Producto` es `DeleteBehavior.Restrict` (`ON DELETE NO ACTION`), para no perder pedidos antiguos si se elimina un producto.
-- **Seguridad:** El identificador del cliente sale siempre de la sesión autenticada (nunca de lo que envía el navegador), así un cliente no puede ver ni modificar el carrito o los pedidos de otro.
-- **Fuera de alcance:** Pagos, panel de administración, filtros por categoría, registro con verificación de email y recuperación de contraseña.
+- **Seguridad:** El identificador del cliente sale siempre de la sesión autenticada (nunca de lo que envía el navegador), así un cliente no puede ver ni modificar el carrito o los pedidos de otro. El `Rol` tampoco viaja en el registro: siempre se crea como `Cliente`; el claim `ClaimTypes.Role` se arma al iniciar sesión y la política `SoloAdmin` protege `/api/admin/*`.
+- **Admin inicial:** `SeedData.CrearAdminInicialAsync` es un paso separado e idempotente (no depende de que existan categorías). Solo crea el admin si no hay otro con rol `Admin` y si `AdminInicial:Email`/`AdminInicial:Password` están configurados. Si el email ya pertenece a un cliente, omite la creación y deja un `LogWarning`; si no hay configuración, no crea nada y no falla.
+- **ABM de administrador:** Solo API REST (`/api/admin/categorias` y `/api/admin/productos`). La baja de productos es lógica (`Activo = false`), nunca física, porque los pedidos los referencian. `ProductoAdminDto` expone `RowVersion` como base64; editar, desactivar y activar envían ese valor en la request y el servicio lo copia a `OriginalValues["RowVersion"]`, por lo que un valor viejo produce 409 ("El producto fue modificado, recargá").
+- **Fuera de alcance:** Pagos, pantallas Blazor del panel de administración, filtros por categoría, registro con verificación de email y recuperación de contraseña.
 
 ---
 
@@ -208,7 +210,7 @@ dotnet ef migrations add AgregarPedidos --project Usaditos2026.BD --startup-proj
 dotnet ef migrations script 20260616193125_InitialCreate --project Usaditos2026.BD --startup-project Usaditos2026.Server/Usaditos2026.Server
 ```
 
-La migración `AgregarPedidos` crea `Pedidos` e `ItemsPedido`, agrega `RowVersion` a `Productos` y reduce `Productos.Nombre` a `nvarchar(200)` (no hay nombres tan largos en los datos de prueba).
+La migración `AgregarPedidos` crea `Pedidos` e `ItemsPedido`, agrega `RowVersion` a `Productos` y reduce `Productos.Nombre` a `nvarchar(200)` (no hay nombres tan largos en los datos de prueba). La migración `AgregarRolCliente` agrega `Clientes.Rol` como `nvarchar(20)` no nulo con valor por defecto `Cliente`, así los clientes ya existentes quedan con ese rol sin necesidad de backfill manual.
 
 ---
 
@@ -221,6 +223,14 @@ La migración `AgregarPedidos` crea `Pedidos` e `ItemsPedido`, agrega `RowVersio
 | `cliente@usaditos.com` | `Usaditos123!` |
 
 También se puede crear una cuenta nueva desde `/registro`.
+
+**Admin de prueba (solo Development)**
+
+| Email | Contraseña |
+| :--- | :--- |
+| `admin@usaditos.com` | `Admin123!` |
+
+Se crea automáticamente desde `appsettings.Development.json` (`AdminInicial`). No existe en `appsettings.json` y la creación es idempotente: si el email ya es un cliente, se omite con un `LogWarning`.
 
 **Catálogo de prueba:** 3 categorías (Remeras, Pantalones, Abrigos) y 9 productos con stock variado, pensados para probar cada escenario:
 
@@ -247,7 +257,7 @@ También se puede crear una cuenta nueva desde `/registro`.
 
 ## 🔌 API REST
 
-Se puede probar desde Swagger (`/swagger`). `/api/productos` es público; los endpoints del carrito y de pedidos requieren haber iniciado sesión: primero ejecutar el login.
+Se puede probar desde Swagger (`/swagger`). `/api/productos` es público; los endpoints del carrito y de pedidos requieren haber iniciado sesión: primero ejecutar el login. Los endpoints `/api/admin/*` requieren además el rol `Admin`: con un `Cliente` responden `403` y sin sesión `401`.
 
 | Método | Ruta | Descripción |
 | :---: | :--- | :--- |
@@ -264,15 +274,30 @@ Se puede probar desde Swagger (`/swagger`). `/api/productos` es público; los en
 | `GET` | `/api/pedidos/{id}` | Detalle de un pedido propio |
 | `POST` | `/api/pedidos/{id}/cancelar` | Cancela un pedido confirmado y devuelve el stock |
 
+**ABM de catálogo (solo Admin)**
+
+| Método | Ruta | Descripción |
+| :---: | :--- | :--- |
+| `GET` | `/api/admin/categorias` | Lista todas las categorías |
+| `POST` | `/api/admin/categorias` | Crea una categoría |
+| `PUT` | `/api/admin/categorias/{id}` | Modifica una categoría |
+| `DELETE` | `/api/admin/categorias/{id}` | Elimina una categoría (409 si tiene productos) |
+| `GET` | `/api/admin/productos` | Lista todos los productos, activos o no |
+| `GET` | `/api/admin/productos/{id}` | Detalle de un producto (incluye `rowVersion`) |
+| `POST` | `/api/admin/productos` | Crea un producto |
+| `PUT` | `/api/admin/productos/{id}` | Modifica un producto (requiere `rowVersion`) |
+| `DELETE` | `/api/admin/productos/{id}` | Desactiva un producto (baja lógica, requiere `rowVersion` en el body) |
+| `POST` | `/api/admin/productos/{id}/activar` | Reactiva un producto (requiere `rowVersion` en el body) |
+
 **Códigos de error**
 
 | Código | Significado |
 | :---: | :--- |
-| `400` | Datos inválidos (por ejemplo, cantidad menor a uno) |
+| `400` | Datos inválidos (por ejemplo, cantidad menor a uno o `rowVersion` vacío) |
 | `401` | No hay sesión iniciada |
-| `403` | El ítem o el pedido no pertenece al cliente |
-| `404` | El producto, el ítem o el pedido no existe |
-| `409` | Sin stock, carrito vacío, estado inválido o conflicto de concurrencia |
+| `403` | El ítem o el pedido no pertenece al cliente; o el usuario no es Admin |
+| `404` | El producto, el ítem, el pedido o la categoría no existe |
+| `409` | Sin stock, carrito vacío, estado inválido, nombre de categoría duplicado, categoría con productos, producto modificado por otro admin o conflicto de concurrencia del checkout |
 
 ### Flujo completo en Swagger
 
@@ -284,6 +309,19 @@ Se puede probar desde Swagger (`/swagger`). `/api/productos` es público; los en
 6. `GET /api/pedidos` y `GET /api/pedidos/{id}` para ver el resumen y el detalle con nombres/precios snapshot.
 7. `POST /api/pedidos/{id}/cancelar`: el pedido pasa a `Cancelado` y el stock se devuelve. Repetirlo da `409`.
 8. `POST /api/pedidos` con el carrito vacío da `409`; `GET /api/pedidos/{id}` de otro cliente da `403`; sin sesión da `401`.
+
+### Flujo admin en Swagger
+
+1. Hacer logout (`POST /api/auth/logout`) si había un cliente logueado y ejecutar `POST /api/auth/login` con `{"email":"admin@usaditos.com","password":"Admin123!"}`.
+2. `GET /api/admin/categorias` → `POST /api/admin/categorias` con `{"nombre":"Accesorios","descripcion":"Gorros y bufandas"}`. Repetir el mismo nombre da `409`.
+3. `POST /api/admin/productos` con `{"nombre":"Gorro de lana","descripcion":"Invierno","precio":12.50,"stockDisponible":8,"categoriaId":4}` (usar un `id` de categoría existente).
+4. `GET /api/admin/productos` lista también los inactivos; `GET /api/productos` (público) no muestra los desactivados.
+5. `GET /api/admin/productos/{id}` devuelve `rowVersion` en base64. Para modificar, enviar `PUT /api/admin/productos/{id}` con todos los campos y ese `rowVersion`, por ejemplo `{"nombre":"Gorro de lana","descripcion":"Invierno","precio":14.00,"stockDisponible":8,"categoriaId":4,"rowVersion":"AAAAAAAACJ8="}` (copiar el valor real de la respuesta).
+6. Concurrencia: guardar el `rowVersion` original, hacer un `PUT` con precio `14.00` y después otro `PUT` con el `rowVersion` guardado y precio `16.00` → el segundo responde `409` con "El producto fue modificado, recargá".
+7. `DELETE /api/admin/productos/{id}` con body `{"rowVersion":"<base64 actual>"}` → `204`. El producto desaparece de `/api/productos` pero sigue en `/api/admin/productos` con `activo: false`.
+8. `POST /api/admin/productos/{id}/activar` con el `rowVersion` devuelto por el listado admin → vuelve a aparecer en el catálogo público.
+9. `DELETE /api/admin/categorias/{id}` de una categoría con productos da `409`; `DELETE` de una categoría vacía da `204`.
+10. Hacer logout y loguearse como `cliente@usaditos.com`: cualquier `/api/admin/*` responde `403`. Sin sesión responde `401`.
 
 ---
 
@@ -325,5 +363,11 @@ Se puede probar desde Swagger (`/swagger`). `/api/productos` es público; los en
 - [x] Historial de pedidos (resumen y detalle) con control de propiedad
 - [x] Cancelación de pedidos confirmados con devolución de stock en transacción
 - [x] Concurrencia optimista con `RowVersion` en `Producto` y `Pedido` (409)
+- [x] Roles `Cliente`/`Admin` con política `SoloAdmin` (401 sin sesión, 403 para clientes)
+- [x] Admin inicial idempotente desde `appsettings.Development.json` con aviso si el email ya es cliente
+- [x] Migración `AgregarRolCliente` con valor por defecto `Cliente`
+- [x] ABM de categorías por API (alta, modificación y baja con validación de productos asociados)
+- [x] ABM de productos por API (alta, modificación, baja lógica y reactivación)
+- [x] Concurrencia optimista en el ABM mediante `rowVersion` enviado por el cliente (409)
 - [ ] Contador de unidades del menú actualizado en vivo (hoy se actualiza al navegar entre páginas)
 - [ ] Pantallas Blazor para confirmar pedido y ver el historial (fuera de alcance: solo backend)

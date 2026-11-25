@@ -13,7 +13,8 @@ namespace Usaditos2026.Server.Security
             {
                 new(ClaimTypes.NameIdentifier, cliente.Id.ToString()),
                 new(ClaimTypes.Name, cliente.Nombre),
-                new(ClaimTypes.Email, cliente.Email)
+                new(ClaimTypes.Email, cliente.Email),
+                new(ClaimTypes.Role, cliente.Rol)
             };
 
             var identidad = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
