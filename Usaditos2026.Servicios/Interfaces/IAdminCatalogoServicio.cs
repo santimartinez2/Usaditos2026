@@ -15,5 +15,8 @@ namespace Usaditos2026.Servicios.Interfaces
         Task<ProductoAdminDto> ModificarProductoAsync(int id, ModificarProductoRequest request);
         Task DesactivarProductoAsync(int id, byte[] rowVersion);
         Task<ProductoAdminDto> ActivarProductoAsync(int id, byte[] rowVersion);
+        Task<ProductoAdminDto> AsignarImagenAsync(
+            int id, Stream contenido, long tamaño, string nombreArchivo, byte[] rowVersion);
+        Task<ProductoAdminDto> QuitarImagenAsync(int id, byte[] rowVersion);
     }
 }

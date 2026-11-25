@@ -30,6 +30,7 @@ namespace Usaditos2026.Servicios
                 Descripcion = producto.Descripcion,
                 Precio = producto.Precio,
                 StockDisponible = producto.StockDisponible,
+                ImagenUrl = producto.ImagenUrl,
                 NombreCategoria = producto.Categoria?.Nombre ?? string.Empty
             };
         }

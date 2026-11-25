@@ -1,10 +1,12 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Usaditos2026.BD.Datos.Entity;
 using Usaditos2026.Repositorio.Interfaces;
 using Usaditos2026.Servicios.Interfaces;
 using Usaditos2026.Shared.Constantes;
 using Usaditos2026.Shared.DTOs;
 using Usaditos2026.Shared.Excepciones;
+using Usaditos2026.Shared.Utilidades;
 
 namespace Usaditos2026.Servicios
 {
@@ -12,13 +14,16 @@ namespace Usaditos2026.Servicios
     {
         private readonly IAdminPedidoRepositorio _adminPedidoRepositorio;
         private readonly IPedidoServicio _pedidoServicio;
+        private readonly TiendaInfoDto _tiendaInfo;
 
         public AdminPedidoServicio(
             IAdminPedidoRepositorio adminPedidoRepositorio,
-            IPedidoServicio pedidoServicio)
+            IPedidoServicio pedidoServicio,
+            IOptions<TiendaInfoDto> tiendaInfo)
         {
             _adminPedidoRepositorio = adminPedidoRepositorio;
             _pedidoServicio = pedidoServicio;
+            _tiendaInfo = tiendaInfo.Value;
         }
 
         public async Task<PaginaDto<PedidoAdminResumenDto>> ObtenerPedidosAsync(PedidoAdminFiltrosDto filtros)
@@ -128,7 +133,7 @@ namespace Usaditos2026.Servicios
             }
         }
 
-        private static PedidoAdminFiltrosDto NormalizarFiltros(PedidoAdminFiltrosDto filtros)
+        private PedidoAdminFiltrosDto NormalizarFiltros(PedidoAdminFiltrosDto filtros)
         {
             if (filtros is null)
                 filtros = new PedidoAdminFiltrosDto();
@@ -141,6 +146,13 @@ namespace Usaditos2026.Servicios
             if (filtros.FechaDesde.HasValue && filtros.FechaHasta.HasValue &&
                 filtros.FechaDesde.Value.Date > filtros.FechaHasta.Value.Date)
                 throw new ArgumentException("La fecha desde no puede ser mayor a la fecha hasta.");
+
+            // El filtro se interpreta en la zona de la tienda; FechaHasta se guarda exclusivo (día siguiente).
+            if (filtros.FechaDesde.HasValue)
+                filtros.FechaDesde = FechaHelper.LocalAUtc(filtros.FechaDesde.Value.Date, _tiendaInfo.ZonaHoraria);
+
+            if (filtros.FechaHasta.HasValue)
+                filtros.FechaHasta = FechaHelper.LocalAUtc(filtros.FechaHasta.Value.Date.AddDays(1), _tiendaInfo.ZonaHoraria);
 
             if (filtros.MetodoPago.HasValue && !Enum.IsDefined(filtros.MetodoPago.Value))
                 throw new ArgumentException("El método de pago del filtro es inválido.");

@@ -119,5 +119,79 @@ namespace Usaditos2026.Server.Controllers
                 return BadRequest(new { mensaje = ex.Message });
             }
         }
+
+        [HttpPost("{id:int}/imagen")]
+        [RequestSizeLimit(ImagenesConstantes.TamanoMaximoRequestBytes)]
+        public async Task<ActionResult<ProductoAdminDto>> AsignarImagen(
+            int id, IFormFile archivo, [FromForm] string rowVersion)
+        {
+            if (archivo is null || archivo.Length == 0)
+                return BadRequest(new { mensaje = "La imagen es obligatoria." });
+
+            if (!IntentarLeerRowVersion(rowVersion, out var version))
+                return BadRequest(new { mensaje = "El RowVersion es obligatorio y debe estar en base64." });
+
+            try
+            {
+                await using var origen = archivo.OpenReadStream();
+                using var contenido = new MemoryStream();
+                await origen.CopyToAsync(contenido);
+                contenido.Position = 0;
+
+                var producto = await _adminCatalogoServicio.AsignarImagenAsync(
+                    id, contenido, archivo.Length, archivo.FileName, version);
+                return Ok(producto);
+            }
+            catch (ProductoModificadoException ex)
+            {
+                return Conflict(new { mensaje = ex.Message });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { mensaje = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { mensaje = ex.Message });
+            }
+        }
+
+        [HttpDelete("{id:int}/imagen")]
+        public async Task<ActionResult<ProductoAdminDto>> QuitarImagen(int id, [FromBody] CambiarEstadoProductoRequest request)
+        {
+            try
+            {
+                return Ok(await _adminCatalogoServicio.QuitarImagenAsync(id, request.RowVersion));
+            }
+            catch (ProductoModificadoException ex)
+            {
+                return Conflict(new { mensaje = ex.Message });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { mensaje = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { mensaje = ex.Message });
+            }
+        }
+
+        private static bool IntentarLeerRowVersion(string? valor, out byte[] rowVersion)
+        {
+            rowVersion = Array.Empty<byte>();
+            if (string.IsNullOrWhiteSpace(valor))
+                return false;
+
+            try
+            {
+                rowVersion = Convert.FromBase64String(valor);
+                return rowVersion.Length > 0;
+            }
+            catch (FormatException)
+            {
+                return false;
+            }
+        }
     }
 }

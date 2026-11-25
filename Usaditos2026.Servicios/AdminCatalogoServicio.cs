@@ -1,8 +1,13 @@
 using System;
+using System.IO;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Usaditos2026.BD.Datos.Entity;
 using Usaditos2026.Repositorio.Interfaces;
+using Usaditos2026.Servicios.Imagenes;
 using Usaditos2026.Servicios.Interfaces;
+using Usaditos2026.Shared.Constantes;
 using Usaditos2026.Shared.DTOs;
 using Usaditos2026.Shared.Excepciones;
 
@@ -11,10 +16,20 @@ namespace Usaditos2026.Servicios
     public class AdminCatalogoServicio : IAdminCatalogoServicio
     {
         private readonly IAdminCatalogoRepositorio _adminCatalogoRepositorio;
+        private readonly IAlmacenImagenes _almacenImagenes;
+        private readonly ImagenesOpciones _imagenesOpciones;
+        private readonly ILogger<AdminCatalogoServicio> _logger;
 
-        public AdminCatalogoServicio(IAdminCatalogoRepositorio adminCatalogoRepositorio)
+        public AdminCatalogoServicio(
+            IAdminCatalogoRepositorio adminCatalogoRepositorio,
+            IAlmacenImagenes almacenImagenes,
+            IOptions<ImagenesOpciones> imagenesOpciones,
+            ILogger<AdminCatalogoServicio> logger)
         {
             _adminCatalogoRepositorio = adminCatalogoRepositorio;
+            _almacenImagenes = almacenImagenes;
+            _imagenesOpciones = imagenesOpciones.Value;
+            _logger = logger;
         }
 
         public async Task<List<CategoriaDto>> ObtenerCategoriasAsync()
@@ -156,6 +171,92 @@ namespace Usaditos2026.Servicios
             return MapearAProductoAdminDto(actualizado!);
         }
 
+        public async Task<ProductoAdminDto> AsignarImagenAsync(
+            int id, Stream contenido, long tamaño, string nombreArchivo, byte[] rowVersion)
+        {
+            ValidarRowVersion(rowVersion);
+            ValidarTamaño(tamaño, contenido);
+
+            // El nombre del cliente nunca se usa: el servidor genera un GUID con la extensión detectada.
+            var imagen = await ImagenProcesador.ProcesarAsync(contenido);
+            var nombreServidor = $"{Guid.NewGuid():N}.{imagen.Extension}";
+            var producto = await _adminCatalogoRepositorio.ObtenerProductoParaEdicionAsync(id)
+                ?? throw new KeyNotFoundException("El producto no existe.");
+            var imagenAnterior = producto.ImagenUrl;
+
+            // El archivo se guarda primero; si falla la base, se descarta el archivo nuevo.
+            var nuevaUrl = await _almacenImagenes.GuardarAsync(new MemoryStream(imagen.Contenido), nombreServidor);
+            var guardado = false;
+            try
+            {
+                producto.ImagenUrl = nuevaUrl;
+                await _adminCatalogoRepositorio.EstablecerRowVersionOriginalAsync(producto, rowVersion);
+                await GuardarConConcurrenciaAsync();
+                guardado = true;
+            }
+            finally
+            {
+                if (!guardado)
+                    await BorrarSinRomperAsync(nuevaUrl);
+            }
+
+            // Recién después de guardar en la base se quita el archivo anterior.
+            if (!string.IsNullOrWhiteSpace(imagenAnterior) && imagenAnterior != nuevaUrl)
+                await BorrarSinRomperAsync(imagenAnterior);
+
+            var actualizado = await _adminCatalogoRepositorio.ObtenerProductoAsync(id);
+            return MapearAProductoAdminDto(actualizado!);
+        }
+
+        public async Task<ProductoAdminDto> QuitarImagenAsync(int id, byte[] rowVersion)
+        {
+            ValidarRowVersion(rowVersion);
+
+            var producto = await _adminCatalogoRepositorio.ObtenerProductoParaEdicionAsync(id)
+                ?? throw new KeyNotFoundException("El producto no existe.");
+            var imagenAnterior = producto.ImagenUrl;
+
+            if (!string.IsNullOrWhiteSpace(imagenAnterior))
+            {
+                producto.ImagenUrl = null;
+                await _adminCatalogoRepositorio.EstablecerRowVersionOriginalAsync(producto, rowVersion);
+                await GuardarConConcurrenciaAsync();
+                await BorrarSinRomperAsync(imagenAnterior);
+            }
+
+            var actualizado = await _adminCatalogoRepositorio.ObtenerProductoAsync(id);
+            return MapearAProductoAdminDto(actualizado!);
+        }
+
+        private void ValidarTamaño(long tamaño, Stream contenido)
+        {
+            var mb = _imagenesOpciones.TamanoMaximoMb > 0
+                ? _imagenesOpciones.TamanoMaximoMb
+                : ImagenesConstantes.TamanoMaximoPorDefectoMb;
+            var maximo = mb * 1024L * 1024L;
+
+            if (tamaño <= 0 || tamaño > maximo)
+                throw new ArgumentException($"La imagen es obligatoria y no puede superar los {mb} MB.");
+
+            if (contenido.CanSeek && contenido.Length > maximo)
+                throw new ArgumentException($"La imagen no puede superar los {mb} MB.");
+        }
+
+        private async Task BorrarSinRomperAsync(string? ruta)
+        {
+            if (string.IsNullOrWhiteSpace(ruta))
+                return;
+
+            try
+            {
+                await _almacenImagenes.BorrarAsync(ruta);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "No se pudo borrar la imagen {ImagenUrl}.", ruta);
+            }
+        }
+
         private async Task GuardarConConcurrenciaAsync()
         {
             try
@@ -240,6 +341,7 @@ namespace Usaditos2026.Servicios
                 StockDisponible = producto.StockDisponible,
                 Activo = producto.Activo,
                 CategoriaId = producto.CategoriaId,
+                ImagenUrl = producto.ImagenUrl,
                 NombreCategoria = producto.Categoria?.Nombre ?? string.Empty,
                 RowVersion = producto.RowVersion ?? Array.Empty<byte>()
             };

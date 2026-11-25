@@ -120,6 +120,8 @@ El proyecto implementa de punta a punta los casos de uso **Agregar y eliminar pr
 - **Admin inicial:** `SeedData.CrearAdminInicialAsync` es un paso separado e idempotente (no depende de que existan categorías). Solo crea el admin si no hay otro con rol `Admin` y si `AdminInicial:Email`/`AdminInicial:Password` están configurados. Si el email ya pertenece a un cliente, omite la creación y deja un `LogWarning`; si no hay configuración, no crea nada y no falla.
 - **ABM de administrador:** Solo API REST (`/api/admin/categorias` y `/api/admin/productos`). La baja de productos es lógica (`Activo = false`), nunca física, porque los pedidos los referencian. `ProductoAdminDto` expone `RowVersion` como base64; editar, desactivar y activar envían ese valor en la request y el servicio lo copia a `OriginalValues["RowVersion"]`, por lo que un valor viejo produce 409 ("El producto fue modificado, recargá").
 - **Administración de pedidos:** Solo API REST (`/api/admin/pedidos`). Listado paginado y filtrable, detalle con `rowVersion`, transiciones de estado y registro de pago. No se agregaron páginas Blazor.
+- **Imágenes de producto:** Una imagen principal opcional por producto (`Producto.ImagenUrl`, `nvarchar(300)`). Solo API REST: `POST /api/admin/productos/{id}/imagen` (multipart/form-data) y `DELETE /api/admin/productos/{id}/imagen`. El nombre del archivo **siempre lo genera el servidor** (`GUID` + extensión detectada); el `fileName` del cliente nunca se usa. Se aceptan JPEG, PNG y WebP verificando los magic bytes, con `RequestSizeLimit` y validación real en el servicio. SkiaSharp **4.157.0** (MIT) valida dimensiones antes de decodificar (lado ≤ 8000 px, ≤ 40 MP), aplica `SKCodec.EncodedOrigin` antes de re-codificar, redimensiona a 1200 px y elimina metadatos/GPS. Los archivos se guardan en `App_Data/uploads/productos` (fuera de `wwwroot`, ignorado por Git) y se sirven desde `/uploads/productos` con caché inmutable y `nosniff`. Si falla la base después de guardar, se borra el archivo nuevo; si sale bien, se borra el anterior (un fallo de borrado solo deja un `LogWarning`). El `rowVersion` viejo responde `409`; formato/dimensiones/tamaño inválidos responden `400`. En Linux se requiere `SkiaSharp.NativeAssets.Linux.NoDependencies` **4.157.0**; se documenta pero no se agrega al proyecto porque el despliegue objetivo es Windows.
+- **Filtro de fechas del admin:** `fechaDesde`/`fechaHasta` se interpretan en `Tienda:ZonaHoraria` (default `America/Argentina/Cordoba`, con fallback `Argentina Standard Time` y luego UTC). `FechaHelper` aplica `DateTime.SpecifyKind(..., DateTimeKind.Unspecified)` antes de convertir, para que un valor con `Z` u offset no corra el día. `fechaHasta` se convierte al inicio del día siguiente y se compara con `<` en UTC (no `.Date.AddDays(1)` en el repositorio).
 - **Fuera de alcance:** Pasarela de pago real / cobro online, pantallas Blazor del panel de administración, filtros por categoría, registro con verificación de email y recuperación de contraseña. El sistema solo registra el estado del pago que confirma el admin.
 
 ---
@@ -136,6 +138,7 @@ El proyecto implementa de punta a punta los casos de uso **Agregar y eliminar pr
 | Paquete | Descripción |
 | :--- | :--- |
 | `Microsoft.Extensions.Identity.Core` | `PasswordHasher` para guardar contraseñas hasheadas |
+| `SkiaSharp` 4.157.0 | Decodificar, aplicar orientación EXIF, redimensionar y re-codificar imágenes (licencia MIT) |
 
 ### En `Usaditos2026.Server.Client`
 | Paquete | Descripción |
@@ -204,6 +207,29 @@ Está en `Usaditos2026.Server/Usaditos2026.Server/appsettings.json`:
 
 ---
 
+## 🖼️ Configuración de imágenes y zona horaria
+
+En `Usaditos2026.Server/Usaditos2026.Server/appsettings.json`:
+
+```json
+{
+  "Tienda": {
+    "ZonaHoraria": "America/Argentina/Cordoba"
+  },
+  "Imagenes": {
+    "Ruta": "App_Data/uploads/productos",
+    "TamanoMaximoMb": 8
+  }
+}
+```
+
+- `Imagenes:Ruta` puede ser relativa a la carpeta del proyecto Server o absoluta; se crea al arrancar.
+- `TamanoMaximoMb` se valida en el servicio; el límite del request es de 9 MB para dejar margen al multipart.
+- El límite de request usa la constante `ImagenesConstantes.TamanoMaximoRequestBytes`. Si se cambia `TamanoMaximoMb` a un valor mayor que el default, hay que ajustar también esa constante.
+- En Linux, instalar `SkiaSharp.NativeAssets.Linux.NoDependencies` versión `4.157.0` junto con SkiaSharp; no hace falta en Windows.
+
+---
+
 ## 🔄 Migraciones
 
 La aplicación las aplica sola al arrancar en *Development*. Para manejarlas a mano, desde la raíz del repo:
@@ -222,7 +248,7 @@ dotnet ef migrations add AgregarPedidos --project Usaditos2026.BD --startup-proj
 dotnet ef migrations script 20260616193125_InitialCreate --project Usaditos2026.BD --startup-project Usaditos2026.Server/Usaditos2026.Server
 ```
 
-La migración `AgregarPedidos` crea `Pedidos` e `ItemsPedido`, agrega `RowVersion` a `Productos` y reduce `Productos.Nombre` a `nvarchar(200)` (no hay nombres tan largos en los datos de prueba). `AgregarRolCliente` agrega `Clientes.Rol` como `nvarchar(20)` no nulo con valor por defecto `Cliente`. `AgregarEntregaYPagoPedido` agrega los campos de entrega/pago en `Pedidos` (`nvarchar(20)` para los enums, con defaults `Retiro`, `Efectivo` y `Pendiente`), sin backfill manual.
+La migración `AgregarPedidos` crea `Pedidos` e `ItemsPedido`, agrega `RowVersion` a `Productos` y reduce `Productos.Nombre` a `nvarchar(200)` (no hay nombres tan largos en los datos de prueba). `AgregarRolCliente` agrega `Clientes.Rol` como `nvarchar(20)` no nulo con valor por defecto `Cliente`. `AgregarEntregaYPagoPedido` agrega los campos de entrega/pago en `Pedidos` (`nvarchar(20)` para los enums, con defaults `Retiro`, `Efectivo` y `Pendiente`), sin backfill manual. `AgregarImagenProducto` agrega `Productos.ImagenUrl` como `nvarchar(300)` nullable, sin cambios en otras tablas.
 
 ---
 
@@ -310,16 +336,18 @@ Se puede probar desde Swagger (`/swagger`). `/api/productos` es público; los en
 | `PUT` | `/api/admin/productos/{id}` | Modifica un producto (requiere `rowVersion`) |
 | `DELETE` | `/api/admin/productos/{id}` | Desactiva un producto (baja lógica, requiere `rowVersion` en el body) |
 | `POST` | `/api/admin/productos/{id}/activar` | Reactiva un producto (requiere `rowVersion` en el body) |
+| `POST` | `/api/admin/productos/{id}/imagen` | Sube/reemplaza la imagen principal (multipart: `archivo` y `rowVersion` en base64) |
+| `DELETE` | `/api/admin/productos/{id}/imagen` | Quita la imagen principal (requiere `rowVersion` en el body) |
 
 **Códigos de error**
 
 | Código | Significado |
 | :---: | :--- |
-| `400` | Datos inválidos (cantidad menor a uno, enum inválido, teléfono/dirección faltante o `rowVersion` vacío) |
+| `400` | Datos inválidos (cantidad menor a uno, enum inválido, teléfono/dirección faltante, `rowVersion` vacío o imagen con formato/tamaño/dimensiones inválidos) |
 | `401` | No hay sesión iniciada |
 | `403` | El ítem o el pedido no pertenece al cliente; o el usuario no es Admin |
 | `404` | El producto, el ítem, el pedido o la categoría no existe |
-| `409` | Sin stock, carrito vacío, estado de pedido/pago inválido, nombre de categoría duplicado, categoría con productos, producto o pedido modificado por otro usuario, o conflicto de concurrencia del checkout |
+| `409` | Sin stock, carrito vacío, estado de pedido/pago inválido, nombre de categoría duplicado, categoría con productos, producto o pedido modificado por otro usuario (también al subir/quitar imagen con un `rowVersion` viejo), o conflicto de concurrencia del checkout |
 
 ### Flujo completo en Swagger
 
@@ -345,6 +373,15 @@ Se puede probar desde Swagger (`/swagger`). `/api/productos` es público; los en
 8. `POST /api/admin/productos/{id}/activar` con el `rowVersion` devuelto por el listado admin → vuelve a aparecer en el catálogo público.
 9. `DELETE /api/admin/categorias/{id}` de una categoría con productos da `409`; `DELETE` de una categoría vacía da `204`.
 10. Hacer logout y loguearse como `cliente@usaditos.com`: cualquier `/api/admin/*` responde `403`. Sin sesión responde `401`.
+
+### Flujo de imágenes en Swagger (Admin)
+
+1. Loguearse como `admin@usaditos.com` y hacer `GET /api/admin/productos/{id}` para copiar el `rowVersion` actual.
+2. En `POST /api/admin/productos/{id}/imagen`, completar `rowVersion` con ese base64, elegir un archivo `.jpg`, `.png` o `.webp` en `archivo` y ejecutar. La respuesta devuelve `imagenUrl` con la forma `/uploads/productos/<guid>.<ext>`.
+3. Abrir esa URL en el navegador: sirve la imagen redimensionada, sin metadatos EXIF/GPS y con `Cache-Control` inmutable.
+4. Repetir el `POST` con el `rowVersion` viejo: responde `409`. Subir un `.txt`, un `.svg` o un archivo mayor a 8 MB responde `400`.
+5. `DELETE /api/admin/productos/{id}/imagen` con `{"rowVersion":"<base64 actual>"}` deja `imagenUrl` en `null` y borra el archivo. Repetir con el valor viejo da `409`.
+6. El mismo producto se ve en `GET /api/productos` y `GET /api/admin/productos` con el `imagenUrl` correspondiente. Las imágenes quedan fuera de Git en `App_Data/uploads/productos`.
 
 ### Flujo de pedidos en Swagger (Admin)
 
@@ -411,5 +448,10 @@ Se puede probar desde Swagger (`/swagger`). `/api/productos` es público; los en
 - [x] Registro admin de pago con `rowVersion` y 409 por valor viejo
 - [x] Cancelación compartida cliente/admin con devolución de stock en transacción
 - [x] Migración `AgregarEntregaYPagoPedido` con defaults y longitudes revisadas
+- [x] Imagen principal por producto con `POST/DELETE /api/admin/productos/{id}/imagen` (solo API REST, sin páginas Blazor)
+- [x] SkiaSharp 4.157.0 fijado: magic bytes, límite de dimensiones, orientación EXIF antes de re-codificar, resize a 1200 px y sin metadatos/GPS
+- [x] Archivos fuera de `wwwroot`, servidos por `/uploads/productos` con caché inmutable y `nosniff`, ignorados por Git
+- [x] Concurrencia de imagen mediante `rowVersion` (409 con valor viejo) y borrado del archivo viejo recién después de guardar en la base
+- [x] Filtro de fechas del admin interpretado en `Tienda:ZonaHoraria` con `SpecifyKind(..., Unspecified)` y comparación UTC exclusiva
 - [ ] Contador de unidades del menú actualizado en vivo (hoy se actualiza al navegar entre páginas)
 - [ ] Pantallas Blazor para confirmar pedido y ver el historial (fuera de alcance: solo backend)

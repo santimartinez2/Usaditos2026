@@ -7,6 +7,7 @@ namespace Usaditos2026.Shared.DTOs
         public string Descripcion { get; set; } = string.Empty;
         public decimal Precio { get; set; }
         public int StockDisponible { get; set; }
+        public string? ImagenUrl { get; set; }
         public string NombreCategoria { get; set; } = string.Empty;
     }
 }
