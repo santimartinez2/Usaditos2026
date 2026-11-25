@@ -12,6 +12,11 @@ namespace Usaditos2026.Shared.DTOs
         public bool Activo { get; set; }
         public int CategoriaId { get; set; }
         public string? ImagenUrl { get; set; }
+        public string Talle { get; set; } = string.Empty;
+        public string Estado { get; set; } = string.Empty;
+        public string EstadoTexto { get; set; } = string.Empty;
+        public string? Observaciones { get; set; }
+        public DateTime FechaAlta { get; set; }
         public string NombreCategoria { get; set; } = string.Empty;
         public byte[] RowVersion { get; set; } = Array.Empty<byte>();
     }

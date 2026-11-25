@@ -10,6 +10,7 @@ using Usaditos2026.Servicios.Interfaces;
 using Usaditos2026.Shared.Constantes;
 using Usaditos2026.Shared.DTOs;
 using Usaditos2026.Shared.Excepciones;
+using Usaditos2026.Shared.Utilidades;
 
 namespace Usaditos2026.Servicios
 {
@@ -101,7 +102,8 @@ namespace Usaditos2026.Servicios
         public async Task<ProductoAdminDto> CrearProductoAsync(CrearProductoRequest request)
         {
             var datos = ValidarDatosProducto(
-                request.Nombre, request.Descripcion, request.Precio, request.StockDisponible, request.CategoriaId);
+                request.Nombre, request.Descripcion, request.Precio, request.StockDisponible, request.CategoriaId,
+                request.Talle, request.Estado, request.Observaciones);
             await ValidarCategoriaExisteAsync(datos.CategoriaId);
 
             var producto = new Producto
@@ -110,6 +112,10 @@ namespace Usaditos2026.Servicios
                 Descripcion = datos.Descripcion,
                 Precio = datos.Precio,
                 StockDisponible = datos.Stock,
+                Talle = datos.Talle,
+                Estado = datos.Estado,
+                Observaciones = datos.Observaciones,
+                FechaAlta = DateTime.UtcNow,
                 CategoriaId = datos.CategoriaId,
                 Activo = true
             };
@@ -127,7 +133,8 @@ namespace Usaditos2026.Servicios
                 ?? throw new KeyNotFoundException("El producto no existe.");
 
             var datos = ValidarDatosProducto(
-                request.Nombre, request.Descripcion, request.Precio, request.StockDisponible, request.CategoriaId);
+                request.Nombre, request.Descripcion, request.Precio, request.StockDisponible, request.CategoriaId,
+                request.Talle, request.Estado, request.Observaciones);
             await ValidarCategoriaExisteAsync(datos.CategoriaId);
             ValidarRowVersion(request.RowVersion);
 
@@ -135,6 +142,9 @@ namespace Usaditos2026.Servicios
             producto.Descripcion = datos.Descripcion;
             producto.Precio = datos.Precio;
             producto.StockDisponible = datos.Stock;
+            producto.Talle = datos.Talle;
+            producto.Estado = datos.Estado;
+            producto.Observaciones = datos.Observaciones;
             producto.CategoriaId = datos.CategoriaId;
 
             await _adminCatalogoRepositorio.EstablecerRowVersionOriginalAsync(producto, request.RowVersion);
@@ -291,8 +301,10 @@ namespace Usaditos2026.Servicios
                 throw new KeyNotFoundException("La categoría no existe.");
         }
 
-        private static (string Nombre, string Descripcion, decimal Precio, int Stock, int CategoriaId) ValidarDatosProducto(
-            string nombre, string descripcion, decimal precio, int stock, int categoriaId)
+        private static (string Nombre, string Descripcion, decimal Precio, int Stock, int CategoriaId,
+            string Talle, EstadoPrenda Estado, string? Observaciones) ValidarDatosProducto(
+            string nombre, string descripcion, decimal precio, int stock, int categoriaId,
+            string talle, EstadoPrenda? estado, string? observaciones)
         {
             if (string.IsNullOrWhiteSpace(nombre))
                 throw new ArgumentException("El nombre del producto es obligatorio.");
@@ -311,7 +323,43 @@ namespace Usaditos2026.Servicios
             if (categoriaId <= 0)
                 throw new ArgumentException("La categoría es obligatoria.");
 
-            return (nombreNormalizado, descripcion?.Trim() ?? string.Empty, precio, stock, categoriaId);
+            return (
+                nombreNormalizado,
+                descripcion?.Trim() ?? string.Empty,
+                precio,
+                stock,
+                categoriaId,
+                ValidarTalle(talle),
+                ValidarEstado(estado),
+                NormalizarObservaciones(observaciones));
+        }
+
+        private static string ValidarTalle(string talle)
+        {
+            if (!TalleConstantes.EsValido(talle))
+                throw new ArgumentException($"El talle debe ser uno de: {string.Join(", ", TalleConstantes.Valores)}.");
+
+            return talle.Trim();
+        }
+
+        private static EstadoPrenda ValidarEstado(EstadoPrenda? estado)
+        {
+            if (!estado.HasValue || !Enum.IsDefined(estado.Value))
+                throw new ArgumentException("El estado de la prenda es inválido.");
+
+            return estado.Value;
+        }
+
+        private static string? NormalizarObservaciones(string? observaciones)
+        {
+            if (string.IsNullOrWhiteSpace(observaciones))
+                return null;
+
+            var texto = observaciones.Trim();
+            if (texto.Length > 300)
+                throw new ArgumentException("Las observaciones no pueden superar los 300 caracteres.");
+
+            return texto;
         }
 
         private static void ValidarRowVersion(byte[] rowVersion)
@@ -342,6 +390,11 @@ namespace Usaditos2026.Servicios
                 Activo = producto.Activo,
                 CategoriaId = producto.CategoriaId,
                 ImagenUrl = producto.ImagenUrl,
+                Talle = producto.Talle,
+                Estado = producto.Estado.ToString(),
+                EstadoTexto = EstadoPrendaHelper.ObtenerTexto(producto.Estado),
+                Observaciones = producto.Observaciones,
+                FechaAlta = DateTime.SpecifyKind(producto.FechaAlta, DateTimeKind.Utc),
                 NombreCategoria = producto.Categoria?.Nombre ?? string.Empty,
                 RowVersion = producto.RowVersion ?? Array.Empty<byte>()
             };

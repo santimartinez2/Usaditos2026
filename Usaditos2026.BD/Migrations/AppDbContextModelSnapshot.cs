@@ -263,6 +263,14 @@ namespace Usaditos2026.BD.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("Estado")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime>("FechaAlta")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("ImagenUrl")
                         .HasMaxLength(300)
                         .HasColumnType("nvarchar(300)");
@@ -271,6 +279,10 @@ namespace Usaditos2026.BD.Migrations
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Observaciones")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
 
                     b.Property<decimal>("Precio")
                         .HasPrecision(18, 2)
@@ -284,6 +296,11 @@ namespace Usaditos2026.BD.Migrations
 
                     b.Property<int>("StockDisponible")
                         .HasColumnType("int");
+
+                    b.Property<string>("Talle")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
 
                     b.HasKey("Id");
 

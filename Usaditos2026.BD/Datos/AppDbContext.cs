@@ -35,6 +35,10 @@ namespace Usaditos2026.BD.Datos
             {
                 entity.Property(p => p.Nombre).IsRequired().HasMaxLength(200);
                 entity.Property(p => p.ImagenUrl).HasMaxLength(300);
+                entity.Property(p => p.Talle).IsRequired().HasMaxLength(TalleConstantes.LongitudMaxima);
+                entity.Property(p => p.Estado).HasConversion<string>().IsRequired().HasMaxLength(20);
+                entity.Property(p => p.Observaciones).HasMaxLength(300);
+                entity.Property(p => p.FechaAlta).IsRequired();
                 entity.Property(p => p.Precio).HasPrecision(18, 2);
             });
 
