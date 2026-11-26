@@ -7,109 +7,348 @@
 @using Usaditos2026.Shared.DTOs
 @using Usaditos2026.Shared.Excepciones
 @inject ICarritoServicio CarritoServicio
+@inject ICatalogoServicio CatalogoServicio
+@inject ITiendaServicio TiendaServicio
 @inject NavigationManager Navigation
 
-<PageTitle>Carrito</PageTitle>
+<PageTitle>Tu carrito | Usaditos Hernando</PageTitle>
 
-<h1 class="carrito-titulo mb-4">Carrito</h1>
-
-@if (!string.IsNullOrWhiteSpace(_mensajeError))
-{
-    <div class="alert @_claseMensajeError carrito-alert mb-4" role="alert">@_mensajeError</div>
-}
-
-@if (_cargando)
-{
-    <p class="carrito-estado">Cargando carrito...</p>
-}
-else if (_carrito is null || _carrito.Items.Count == 0)
-{
-    <div class="card card-vacio text-center py-5">
-        <div class="card-body d-flex flex-column align-items-center">
-            <div class="icono-vacio mb-3" aria-hidden="true">
-                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="9" cy="21" r="1"></circle>
-                    <circle cx="20" cy="21" r="1"></circle>
-                    <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
-                    <line x1="3" y1="3" x2="21" y2="21"></line>
+<div class="carrito-page">
+    @if (!string.IsNullOrWhiteSpace(_mensajeError))
+    {
+        <div class="alert @_claseMensajeError alert-dismissible fade show d-flex align-items-center justify-content-between mb-4 shadow-sm" role="alert">
+            <div class="d-flex align-items-center gap-2">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="8" x2="12" y2="12"></line>
+                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
                 </svg>
+                <span>@_mensajeError</span>
             </div>
-            <p class="texto-vacio mb-3">Tu carrito está vacío</p>
-            <a class="btn btn-primary btn-volver px-4" href="/catalogo">Volver al catálogo</a>
+            <button type="button" class="btn-close" aria-label="Cerrar aviso" @onclick="() => _mensajeError = null"></button>
         </div>
-    </div>
-}
-else
-{
-    <div class="row row-cols-1 g-3">
-        @foreach (var item in _carrito.Items)
-        {
-            <div class="col">
-                <div class="card card-item h-100">
-                    <div class="card-body d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
-                        <div class="item-info">
-                            <h5 class="card-title item-nombre text-break mb-1">@item.NombreProducto</h5>
-                            <p class="item-precio-unitario mb-0">
-                                <strong>Precio unitario: </strong>
-                                @item.PrecioUnitario.ToString("C", new CultureInfo("es-AR"))
-                            </p>
+    }
+
+    @if (_cargando)
+    {
+        <div class="carrito-loading" role="status" aria-live="polite">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Cargando carrito...</span>
+            </div>
+            <p class="carrito-loading-text mt-3">Cargando tu carrito con amor...</p>
+        </div>
+    }
+    else if (_carrito is null || _carrito.Items.Count == 0)
+    {
+        <!-- Estado Vacío -->
+        <section class="card-vacio-wrapper" aria-label="Carrito vacío">
+            <div class="card-vacio-box">
+                <div class="vacio-glow-orange" aria-hidden="true"></div>
+                <div class="vacio-glow-yellow" aria-hidden="true"></div>
+
+                <div class="vacio-icon-circle" aria-hidden="true">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+                        <line x1="3" y1="6" x2="21" y2="6"></line>
+                        <path d="M16 10a4 4 0 0 1-8 0"></path>
+                    </svg>
+                </div>
+
+                <h2 class="vacio-titulo font-serif">Tu carrito está vacío</h2>
+                <p class="vacio-descripcion">
+                    Todavía no agregaste ninguna prenda de segunda mano con historia. Descubrí tesoros infantiles únicos esperando seguir jugando.
+                </p>
+
+                <a href="/catalogo" class="btn btn-primary btn-vacio-catalogo">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                        <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                    </svg>
+                    <span>Ir al catálogo</span>
+                </a>
+            </div>
+        </section>
+    }
+    else
+    {
+        <!-- Navegación superior / Retorno al catálogo -->
+        <div class="carrito-top-nav">
+            <a href="/catalogo" class="link-seguir-comprando">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                    <polyline points="12 19 5 12 12 5"></polyline>
+                </svg>
+                <span>¿Querés sumar más prendas? Seguir mirando el catálogo</span>
+            </a>
+            <div class="carrito-badge-reserva d-none d-sm-flex">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                <span>Prendas únicas reservadas por 30 minutos</span>
+            </div>
+        </div>
+
+        <!-- Encabezado de página -->
+        <div class="carrito-header-banner">
+            <div class="d-flex flex-wrap align-items-baseline gap-2">
+                <h1 class="carrito-titulo font-serif">Tu carrito</h1>
+                <span class="badge-prendas">(@CantidadTotalPrendas @(CantidadTotalPrendas == 1 ? "prenda" : "prendas"))</span>
+            </div>
+            <span class="carrito-subtitulo-retiro">Hernando, Córdoba • Retiro en tienda física</span>
+        </div>
+
+        <!-- Grilla principal de 2 columnas en desktop / 1 columna en móvil -->
+        <div class="carrito-grid">
+            <!-- COLUMNA IZQUIERDA: Lista de prendas -->
+            <section class="carrito-items-col" aria-label="Prendas en tu carrito">
+                <div class="carrito-items-list">
+                    @foreach (var item in _carrito.Items)
+                    {
+                        var prod = _productosMap.GetValueOrDefault(item.ProductoId);
+                        var tieneImagen = !string.IsNullOrWhiteSpace(prod?.ImagenUrl);
+                        var talleTexto = !string.IsNullOrWhiteSpace(prod?.Talle) ? prod.Talle : "Talle único";
+                        var estadoTexto = !string.IsNullOrWhiteSpace(prod?.EstadoTexto) ? prod.EstadoTexto : "Muy buen estado";
+
+                        <article class="cart-item-card">
+                            <!-- Miniatura de foto (aspect ratio 3:4) -->
+                            <div class="item-thumbnail-wrap">
+                                @if (tieneImagen)
+                                {
+                                    <img src="@prod!.ImagenUrl" alt="@item.NombreProducto" class="item-thumbnail-img" />
+                                }
+                                else
+                                {
+                                    <div class="item-thumbnail-placeholder" aria-label="Foto no disponible">
+                                        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                            <path d="M12 3a2 2 0 0 1 2 2c0 1.1-.9 2-2 2a2 2 0 0 1-2-2 2 2 0 0 1 2-2z"></path>
+                                            <path d="M12 7v2"></path>
+                                            <path d="M2.5 16.5 12 9l9.5 7.5a1.5 1.5 0 0 1-.9 2.5H3.4a1.5 1.5 0 0 1-.9-2.5z"></path>
+                                        </svg>
+                                        <span class="placeholder-label">Usadito</span>
+                                    </div>
+                                }
+                                <span class="item-badge-unica" title="Prenda única seleccionada">1/1</span>
+                            </div>
+
+                            <!-- Información y controles del ítem -->
+                            <div class="item-content">
+                                <!-- Fila superior: Nombre y botón Quitar -->
+                                <div class="item-top-row">
+                                    <h2 class="item-nombre">@item.NombreProducto</h2>
+                                    <button type="button"
+                                            class="btn-quitar-item"
+                                            aria-label="Quitar @item.NombreProducto del carrito"
+                                            disabled="@_procesando"
+                                            @onclick="() => EliminarAsync(item.Id)">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                            <polyline points="3 6 5 6 21 6"></polyline>
+                                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                        </svg>
+                                        <span>Quitar</span>
+                                    </button>
+                                </div>
+
+                                <!-- Chips de talle y estado -->
+                                <div class="item-chips-row">
+                                    <span class="chip-talle">Talle @talleTexto</span>
+                                    <span class="chip-estado">@estadoTexto</span>
+                                </div>
+
+                                <!-- Precio unitario -->
+                                <p class="item-precio-unitario">
+                                    Precio unitario: <span class="precio-unitario-val">@item.PrecioUnitario.ToString("C", _culturaAr)</span>
+                                </p>
+
+                                <!-- Fila inferior: Stepper de cantidad y subtotal -->
+                                <div class="item-bottom-row">
+                                    <div class="stepper-block">
+                                        <div class="stepper-control" role="group" aria-label="Cantidad para @item.NombreProducto">
+                                            <button type="button"
+                                                    class="btn-stepper btn-stepper-minus"
+                                                    aria-label="Disminuir cantidad de @item.NombreProducto"
+                                                    disabled="@(item.Cantidad <= 1 || _procesando)"
+                                                    @onclick="() => ModificarCantidadAsync(item.Id, item.Cantidad - 1)">
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                                </svg>
+                                            </button>
+                                            <span class="stepper-val" aria-live="polite">@item.Cantidad</span>
+                                            <button type="button"
+                                                    class="btn-stepper btn-stepper-plus"
+                                                    aria-label="Aumentar cantidad de @item.NombreProducto"
+                                                    disabled="@(item.Cantidad >= item.StockDisponible || _procesando)"
+                                                    @onclick="() => ModificarCantidadAsync(item.Id, item.Cantidad + 1)">
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                                </svg>
+                                            </button>
+                                        </div>
+
+                                        @if (item.Cantidad >= item.StockDisponible)
+                                        {
+                                            <span class="badge-stock-max" role="status">
+                                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                                                </svg>
+                                                <span>Máximo disponible</span>
+                                            </span>
+                                        }
+                                    </div>
+
+                                    <div class="item-subtotal-block">
+                                        <span class="subtotal-label">Subtotal</span>
+                                        <span class="subtotal-val font-serif">@item.Subtotal.ToString("C", _culturaAr)</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </article>
+                    }
+                </div>
+
+                <!-- Acciones secundarias al pie de la lista -->
+                <div class="carrito-acciones-secundarias">
+                    <button type="button" class="btn-vaciar-carrito" disabled="@_procesando" @onclick="VaciarAsync">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                            <line x1="10" y1="11" x2="10" y2="17"></line>
+                            <line x1="14" y1="11" x2="14" y2="17"></line>
+                        </svg>
+                        <span>Vaciar carrito</span>
+                    </button>
+                    <span class="nota-sanitizado">
+                        Todas las prendas fueron higienizadas y revisadas minuciosamente.
+                    </span>
+                </div>
+            </section>
+
+            <!-- COLUMNA DERECHA: Resumen de pedido (Sticky en Desktop) -->
+            <aside class="carrito-resumen-col" aria-label="Resumen de tu pedido">
+                <div class="resumen-card">
+                    <div class="resumen-header">
+                        <h2 class="resumen-titulo font-serif">Resumen de tu pedido</h2>
+                        <svg class="resumen-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                            <line x1="16" y1="13" x2="8" y2="13"></line>
+                            <line x1="16" y1="17" x2="8" y2="17"></line>
+                            <polyline points="10 9 9 9 8 9"></polyline>
+                        </svg>
+                    </div>
+
+                    <!-- Desglose -->
+                    <div class="resumen-desglose">
+                        <div class="desglose-fila">
+                            <span class="desglose-label">Cantidad de prendas</span>
+                            <span class="desglose-val fw-bold">@CantidadTotalPrendas @(CantidadTotalPrendas == 1 ? "prenda" : "prendas")</span>
+                        </div>
+                        <div class="desglose-fila">
+                            <span class="desglose-label">Subtotal</span>
+                            <span class="desglose-val">@_carrito.Total.ToString("C", _culturaAr)</span>
+                        </div>
+                        <div class="desglose-fila">
+                            <span class="desglose-label d-flex align-items-center gap-1">
+                                <span>Retiro en el local</span>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary" aria-hidden="true">
+                                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                                    <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                                </svg>
+                            </span>
+                            <span class="badge-retiro-gratis">Gratis ($ 0)</span>
+                        </div>
+                    </div>
+
+                    <div class="resumen-divider"></div>
+
+                    <!-- Total destacado -->
+                    <div class="resumen-total-bloque">
+                        <div class="d-flex align-items-baseline justify-content-between">
+                            <span class="total-label">Total</span>
+                            <span class="total-monto font-serif">@_carrito.Total.ToString("C", _culturaAr)</span>
+                        </div>
+                        <p class="total-moneda-aclaracion">Precios finales en pesos argentinos (ARS)</p>
+                    </div>
+
+                    <!-- Botón Principal "Continuar con el pedido" -->
+                    <a href="/checkout" class="btn btn-primary btn-continuar-pedido">
+                        <span>Continuar con el pedido</span>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                            <polyline points="12 5 19 12 12 19"></polyline>
+                        </svg>
+                    </a>
+
+                    <!-- Caja institucional: Retiro y pago en el local -->
+                    <div class="resumen-info-local">
+                        <div class="info-local-item">
+                            <svg class="info-icon text-primary" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                                <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                            </svg>
+                            <div class="info-text">
+                                <span class="info-titulo">Retirás en el local</span>
+                                <span class="info-detalle">@(_tiendaInfo?.Direccion ?? "Av. Siempre Viva 742, Hernando, Córdoba.")</span>
+                            </div>
                         </div>
 
-                        <div class="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between justify-content-md-end gap-3 flex-wrap">
-                            <div class="d-flex align-items-center gap-2 controles-cantidad">
-                                <button type="button" class="btn btn-outline-secondary btn-sm btn-cantidad"
-                                        aria-label="Disminuir cantidad de @item.NombreProducto"
-                                        disabled="@(item.Cantidad <= 1 || _procesando)"
-                                        @onclick="() => ModificarCantidadAsync(item.Id, item.Cantidad - 1)">
-                                    −
-                                </button>
-                                <span class="fw-bold cantidad">@item.Cantidad</span>
-                                <button type="button" class="btn btn-outline-secondary btn-sm btn-cantidad"
-                                        aria-label="Aumentar cantidad de @item.NombreProducto"
-                                        disabled="@(item.Cantidad >= item.StockDisponible || _procesando)"
-                                        @onclick="() => ModificarCantidadAsync(item.Id, item.Cantidad + 1)">
-                                    +
-                                </button>
+                        <div class="info-local-item">
+                            <svg class="info-icon text-accent-orange" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+                                <line x1="2" y1="10" x2="22" y2="10"></line>
+                            </svg>
+                            <div class="info-text">
+                                <span class="info-titulo">El pago se coordina con el local</span>
+                                <p class="info-detalle mb-0">Abonás cuando retirás o transferís directo a nuestro alias oficial.</p>
                             </div>
+                        </div>
 
-                            <div class="item-subtotal-block">
-                                <span class="subtotal-label">Subtotal:</span>
-                                <span class="subtotal-valor">@item.Subtotal.ToString("C", new CultureInfo("es-AR"))</span>
-                            </div>
-
-                            <button type="button" class="btn btn-outline-danger btn-sm btn-eliminar"
-                                    aria-label="Eliminar @item.NombreProducto del carrito"
-                                    disabled="@_procesando"
-                                    @onclick="() => EliminarAsync(item.Id)">
-                                Eliminar
-                            </button>
+                        <div class="badge-beneficio-efectivo">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <line x1="19" y1="5" x2="5" y2="19"></line>
+                                <circle cx="6.5" cy="6.5" r="2.5"></circle>
+                                <circle cx="17.5" cy="17.5" r="2.5"></circle>
+                            </svg>
+                            <span><strong>10% OFF</strong> pagando en efectivo al retirar</span>
                         </div>
                     </div>
                 </div>
-            </div>
-        }
-    </div>
-
-    <div class="card card-resumen mt-4">
-        <div class="card-body d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-3">
-            <div class="total-block">
-                <span class="total-label">Total:</span>
-                <span class="total-monto">@_carrito.Total.ToString("C", new CultureInfo("es-AR"))</span>
-            </div>
-            <button type="button" class="btn btn-outline-danger btn-vaciar" disabled="@_procesando" @onclick="VaciarAsync">
-                Vaciar carrito
-            </button>
+            </aside>
         </div>
-    </div>
-}
+
+        <!-- BARRA FIJA INFERIOR PARA CELULAR (< 992px) -->
+        <aside class="mobile-bottom-bar d-lg-none" aria-label="Resumen de compra rápido">
+            <div class="mobile-bottom-content">
+                <div class="mobile-total-block">
+                    <span class="mobile-total-label">Total</span>
+                    <span class="mobile-total-amount font-serif">@_carrito.Total.ToString("C", _culturaAr)</span>
+                </div>
+                <a href="/checkout" class="btn btn-primary btn-mobile-checkout">
+                    <span>Continuar con el pedido</span>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                        <polyline points="12 5 19 12 12 19"></polyline>
+                    </svg>
+                </a>
+            </div>
+        </aside>
+    }
+</div>
 
 @code {
     private CarritoDto? _carrito;
+    private Dictionary<int, ProductoDto> _productosMap = new();
+    private TiendaInfoDto? _tiendaInfo;
     private int? _clienteId;
     private bool _cargando = true;
     private bool _procesando;
     private string? _mensajeError;
     private string _claseMensajeError = "alert-warning";
+    private readonly CultureInfo _culturaAr = new("es-AR");
+
+    private int CantidadTotalPrendas => _carrito?.Items.Sum(i => i.Cantidad) ?? 0;
 
     [CascadingParameter]
     private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
@@ -118,7 +357,7 @@ else
     {
         if (AuthenticationStateTask is null)
         {
-            Navigation.NavigateTo("/login", forceLoad: true);
+            Navigation.NavigateTo("/login?returnUrl=/carrito", forceLoad: true);
             return;
         }
 
@@ -127,7 +366,7 @@ else
 
         if (!int.TryParse(idClaim, out var clienteId))
         {
-            Navigation.NavigateTo("/login", forceLoad: true);
+            Navigation.NavigateTo("/login?returnUrl=/carrito", forceLoad: true);
             return;
         }
 
@@ -135,7 +374,9 @@ else
 
         try
         {
+            _tiendaInfo = TiendaServicio.ObtenerInfo();
             _carrito = await CarritoServicio.ObtenerCarritoAsync(clienteId);
+            await CargarProductosInfoAsync();
         }
         catch (Exception)
         {
@@ -148,11 +389,24 @@ else
         }
     }
 
+    private async Task CargarProductosInfoAsync()
+    {
+        try
+        {
+            var productos = await CatalogoServicio.ObtenerProductosAsync();
+            _productosMap = productos.ToDictionary(p => p.Id);
+        }
+        catch
+        {
+            // Si la consulta complementaria falla, el carrito sigue operando normalmente con ItemCarritoDto
+        }
+    }
+
     private async Task ModificarCantidadAsync(int itemId, int nuevaCantidad)
     {
         if (_clienteId is null)
         {
-            Navigation.NavigateTo("/login", forceLoad: true);
+            Navigation.NavigateTo("/login?returnUrl=/carrito", forceLoad: true);
             return;
         }
 
@@ -183,7 +437,7 @@ else
     {
         if (_clienteId is null)
         {
-            Navigation.NavigateTo("/login", forceLoad: true);
+            Navigation.NavigateTo("/login?returnUrl=/carrito", forceLoad: true);
             return;
         }
 
@@ -214,7 +468,7 @@ else
     {
         if (_clienteId is null)
         {
-            Navigation.NavigateTo("/login", forceLoad: true);
+            Navigation.NavigateTo("/login?returnUrl=/carrito", forceLoad: true);
             return;
         }
 
