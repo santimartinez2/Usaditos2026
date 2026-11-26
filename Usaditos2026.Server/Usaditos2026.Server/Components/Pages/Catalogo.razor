@@ -3,107 +3,635 @@
 @using System.Globalization
 @using System.Security.Claims
 @using Usaditos2026.Servicios.Interfaces
+@using Usaditos2026.Shared.Constantes
 @using Usaditos2026.Shared.DTOs
 @using Usaditos2026.Shared.Excepciones
+@using Usaditos2026.Shared.Utilidades
 @inject ICatalogoServicio CatalogoServicio
 @inject ICarritoServicio CarritoServicio
 @inject NavigationManager Navigation
 
-<PageTitle>Catálogo</PageTitle>
+<PageTitle>Catálogo | Usaditos Hernando - Ropa infantil con historia</PageTitle>
 
-<h1 class="catalogo-titulo mb-4">Catálogo</h1>
+<div class="catalogo-container">
+    <!-- Avisos de acción -->
+    @if (!string.IsNullOrWhiteSpace(_mensajeExito))
+    {
+        <div class="alert alert-success catalogo-alert alert-dismissible fade show d-flex align-items-center justify-content-between" role="alert">
+            <div class="d-flex align-items-center gap-2">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                <span>@_mensajeExito</span>
+            </div>
+            <div>
+                <a class="btn btn-sm btn-outline-success ms-2" href="/carrito">Ver carrito</a>
+                <button type="button" class="btn-close" aria-label="Cerrar aviso" @onclick="() => _mensajeExito = null"></button>
+            </div>
+        </div>
+    }
 
-@if (!string.IsNullOrWhiteSpace(_mensajeExito))
-{
-    <div class="alert alert-success catalogo-alert" role="alert">
-        @_mensajeExito
-        <a class="alert-link ms-2" href="/carrito">Ver carrito</a>
-    </div>
-}
+    @if (!string.IsNullOrWhiteSpace(_mensajeError))
+    {
+        <div class="alert @_claseMensajeError catalogo-alert alert-dismissible fade show d-flex align-items-center justify-content-between" role="alert">
+            <div class="d-flex align-items-center gap-2">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="8" x2="12" y2="12"></line>
+                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+                <span>@_mensajeError</span>
+            </div>
+            <button type="button" class="btn-close" aria-label="Cerrar aviso" @onclick="() => _mensajeError = null"></button>
+        </div>
+    }
 
-@if (!string.IsNullOrWhiteSpace(_mensajeError))
-{
-    <div class="alert @_claseMensajeError catalogo-alert" role="alert">@_mensajeError</div>
-}
+    <!-- 1. Hero Section -->
+    <section class="catalogo-hero" aria-label="Bienvenida a Usaditos Hernando">
+        <div class="hero-decorative-glow glow-orange" aria-hidden="true"></div>
+        <div class="hero-decorative-glow glow-yellow" aria-hidden="true"></div>
 
-@if (_cargando)
-{
-    <p class="catalogo-estado">Cargando productos...</p>
-}
-else if (_productos.Count == 0)
-{
-    <p class="catalogo-estado">No hay productos disponibles.</p>
-}
-else
-{
-    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
-        @foreach (var producto in _productos)
-        {
-            <div class="col">
-                <div class="card h-100 card-producto">
-                    <!-- Cabecera ilustrativa de altura fija con SVG decorativo -->
-                    <div class="card-img-placeholder d-flex align-items-center justify-content-center" aria-hidden="true">
-                        <svg class="placeholder-icon" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M12 3a2 2 0 0 1 2 2c0 1.1-.9 2-2 2a2 2 0 0 1-2-2 2 2 0 0 1 2-2z" />
-                            <path d="M12 7v2" />
-                            <path d="M2.5 16.5 12 9l9.5 7.5a1.5 1.5 0 0 1-.9 2.5H3.4a1.5 1.5 0 0 1-.9-2.5z" />
+        <div class="hero-grid">
+            <div class="hero-content">
+                <div class="hero-pill">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"></path>
+                        <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"></path>
+                    </svg>
+                    <span>Moda Circular Hernando</span>
+                </div>
+
+                <h1 class="hero-title font-serif">Ropa infantil con historia</h1>
+                <p class="hero-desc">
+                    Prendas seleccionadas que cuidan tu bolsillo y al planeta. Cada pieza revisada, sanitizada y lista para nuevas aventuras.
+                </p>
+
+                <div class="hero-actions">
+                    <a href="#catalogo-section" class="btn btn-hero-cta">
+                        <span>Ver novedades</span>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <polyline points="19 12 12 19 5 12"></polyline>
                         </svg>
+                    </a>
+                    <div class="hero-info-item">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-accent-yellow" aria-hidden="true">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                            <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                        </svg>
+                        <span>Retiro sin cargo en nuestro local</span>
                     </div>
+                </div>
+            </div>
 
-                    <div class="card-body d-flex flex-column">
-                        <div class="mb-2">
-                            <span class="badge badge-categoria text-break">@producto.NombreCategoria</span>
-                        </div>
-
-                        <h5 class="card-title text-break mb-2">@producto.Nombre</h5>
-                        <p class="card-text text-muted text-break mb-3">@producto.Descripcion</p>
-
-                        <div class="mt-auto">
-                            <div class="mb-2">
-                                <span class="precio-producto">@producto.Precio.ToString("C", new CultureInfo("es-AR"))</span>
-                            </div>
-
-                            <div class="mb-3 stock-info">
-                                <strong>Stock: </strong>
-                                @if (producto.StockDisponible == 0)
-                                {
-                                    <span class="badge badge-stock-cero">Sin stock</span>
-                                }
-                                else if (producto.StockDisponible == 1)
-                                {
-                                    <span class="badge badge-stock-uno">¡Última unidad!</span>
-                                }
-                                else
-                                {
-                                    <span class="stock-disponible">@producto.StockDisponible disponibles</span>
-                                }
-                            </div>
-
-                            <button type="button" class="btn btn-primary w-100 btn-agregar" aria-label="Agregar @producto.Nombre al carrito" @onclick="() => AgregarAlCarritoAsync(producto)">
-                                Agregar al carrito
-                            </button>
+            <div class="hero-visual" aria-hidden="true">
+                <div class="visual-wrapper">
+                    <div class="visual-backdrop-orange"></div>
+                    <div class="visual-backdrop-yellow">
+                        <span class="yellow-badge-text">100% Curadas</span>
+                    </div>
+                    <div class="visual-image-card">
+                        <img src="https://images.unsplash.com/photo-1519238263530-99bdd11df2ea?auto=format&fit=crop&w=700&q=80"
+                             alt="Ropa infantil seleccionada con amor"
+                             class="visual-img" />
+                        <div class="visual-float-badge">
+                            <span class="pulse-dot"></span>
+                            <span class="badge-text">Ingresaron hoy</span>
                         </div>
                     </div>
                 </div>
             </div>
+        </div>
+    </section>
+
+    <!-- 2. Trust Strip / Beneficios -->
+    <section class="trust-strip" aria-label="Beneficios de comprar en Usaditos Hernando">
+        <div class="trust-card">
+            <div class="trust-icon-box trust-icon-emerald">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                    <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                </svg>
+            </div>
+            <div class="trust-text">
+                <h2 class="trust-title">Retirá en el local</h2>
+                <p class="trust-desc">Sin costo en Hernando, tu paquetito listo y armado en el día.</p>
+            </div>
+        </div>
+
+        <div class="trust-card">
+            <div class="trust-icon-box trust-icon-orange">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+                    <line x1="2" y1="10" x2="22" y2="10"></line>
+                </svg>
+            </div>
+            <div class="trust-text">
+                <h2 class="trust-title">Efectivo o transferencia</h2>
+                <p class="trust-desc">Aboná en el local al retirar o mediante transferencia bancaria.</p>
+            </div>
+        </div>
+
+        <div class="trust-card">
+            <div class="trust-icon-box trust-icon-emerald">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                    <polyline points="9 12 11 14 15 10"></polyline>
+                </svg>
+            </div>
+            <div class="trust-text">
+                <h2 class="trust-title">Prendas seleccionadas una por una</h2>
+                <p class="trust-desc">Sanitizadas, impecables y medidas en plano con centímetros reales.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- 3. Sección de Catálogo, Filtros y Grilla -->
+    <section id="catalogo-section" class="catalogo-section" aria-label="Explorar prendas">
+        <!-- Chips horizontales de categorías -->
+        <div class="category-chips-scroll" role="toolbar" aria-label="Categorías de prendas">
+            <button type="button"
+                    class="cat-chip @(!CategoriaId.HasValue || CategoriaId.Value == 0 ? "active" : "")"
+                    @onclick="() => SeleccionarCategoria(null)"
+                    aria-pressed="@(!CategoriaId.HasValue || CategoriaId.Value == 0 ? "true" : "false")">
+                Todo
+            </button>
+            @foreach (var cat in _opcionesFiltro.Categorias)
+            {
+                <button type="button"
+                        class="cat-chip @(CategoriaId == cat.Id ? "active" : "")"
+                        @onclick="() => SeleccionarCategoria(cat.Id)"
+                        aria-pressed="@(CategoriaId == cat.Id ? "true" : "false")">
+                    @cat.Nombre
+                    @if (cat.Cantidad > 0)
+                    {
+                        <span class="cat-chip-count">@cat.Cantidad</span>
+                    }
+                </button>
+            }
+        </div>
+
+        <!-- Barra de herramientas de filtros y orden -->
+        <div class="filters-toolbar">
+            <!-- Filtros Desktop -->
+            <div class="toolbar-left d-none d-md-flex align-items-center gap-3">
+                <!-- Selector de Talle -->
+                <div class="filter-item">
+                    <label for="select-talle" class="visually-hidden">Filtrar por talle</label>
+                    <select id="select-talle"
+                            class="form-select form-select-sm filter-select"
+                            value="@(Talle ?? "")"
+                            @onchange="OnTalleCambiado">
+                        <option value="">Todos los talles</option>
+                        @foreach (var t in _opcionesFiltro.Talles)
+                        {
+                            <option value="@t.Valor">@t.Texto @(t.Cantidad > 0 ? $"({t.Cantidad})" : "")</option>
+                        }
+                    </select>
+                </div>
+
+                <!-- Selector de Estado -->
+                <div class="filter-item">
+                    <label for="select-estado" class="visually-hidden">Filtrar por estado</label>
+                    <select id="select-estado"
+                            class="form-select form-select-sm filter-select"
+                            value="@(Estado ?? "")"
+                            @onchange="OnEstadoCambiado">
+                        <option value="">Todos los estados</option>
+                        @foreach (var e in _opcionesFiltro.Estados)
+                        {
+                            <option value="@e.Valor">@e.Texto @(e.Cantidad > 0 ? $"({e.Cantidad})" : "")</option>
+                        }
+                    </select>
+                </div>
+
+                <!-- Switch Solo disponibles -->
+                <div class="filter-item form-check form-switch m-0 d-flex align-items-center gap-2">
+                    <input class="form-check-input switch-emerald"
+                           type="checkbox"
+                           role="switch"
+                           id="switch-disponibles"
+                           checked="@(SoloDisponibles.GetValueOrDefault(false))"
+                           @onchange="OnSoloDisponiblesCambiado" />
+                    <label class="form-check-label text-nowrap" for="switch-disponibles">Solo disponibles</label>
+                </div>
+
+                @if (FiltrosActivosCount > 0 || !string.IsNullOrWhiteSpace(Texto))
+                {
+                    <button type="button" class="btn btn-link btn-sm text-decoration-none text-muted" @onclick="LimpiarFiltros">
+                        ✕ Limpiar filtros
+                    </button>
+                }
+            </div>
+
+            <!-- Botón Filtros para Móviles -->
+            <div class="d-md-none">
+                <button type="button"
+                        class="btn btn-outline-secondary btn-filtro-movil"
+                        @onclick="AbrirModalFiltrosMovil"
+                        aria-label="Abrir filtros de catálogo">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <line x1="4" y1="21" x2="4" y2="14"></line>
+                        <line x1="4" y1="10" x2="4" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="12"></line>
+                        <line x1="12" y1="8" x2="12" y2="3"></line>
+                        <line x1="20" y1="21" x2="20" y2="16"></line>
+                        <line x1="20" y1="12" x2="20" y2="3"></line>
+                        <line x1="1" y1="14" x2="7" y2="14"></line>
+                        <line x1="9" y1="8" x2="15" y2="8"></line>
+                        <line x1="17" y1="16" x2="23" y2="16"></line>
+                    </svg>
+                    <span>Filtrar</span>
+                    @if (FiltrosActivosCount > 0)
+                    {
+                        <span class="badge-filtro-contador">@FiltrosActivosCount</span>
+                    }
+                </button>
+            </div>
+
+            <!-- Toolbar Right: Contador destacado y Selector de Orden -->
+            <div class="toolbar-right d-flex align-items-center justify-content-between justify-content-md-end gap-3 flex-grow-1 flex-md-grow-0">
+                <!-- Contador de prendas -->
+                <div class="prendas-counter" role="status">
+                    <span class="counter-dot" aria-hidden="true"></span>
+                    <span class="counter-text">
+                        @if (_cargando)
+                        {
+                            <span>Buscando prendas...</span>
+                        }
+                        else
+                        {
+                            <span>@(_pagina.Items.Count) de @(_pagina.Total) prendas</span>
+                        }
+                    </span>
+                </div>
+
+                <!-- Selector de ordenamiento -->
+                <div class="d-flex align-items-center gap-2">
+                    <label for="select-orden" class="text-muted small d-none d-sm-inline text-nowrap me-1">Ordenar por:</label>
+                    <select id="select-orden"
+                            class="form-select form-select-sm sort-select"
+                            value="@(Orden ?? nameof(OrdenCatalogo.MasNuevos))"
+                            @onchange="OnOrdenCambiado"
+                            aria-label="Ordenar prendas por">
+                        <option value="@nameof(OrdenCatalogo.MasNuevos)">Más nuevos</option>
+                        <option value="@nameof(OrdenCatalogo.PrecioMenor)">Menor precio</option>
+                        <option value="@nameof(OrdenCatalogo.PrecioMayor)">Mayor precio</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Indicador de búsqueda de texto activo -->
+        @if (!string.IsNullOrWhiteSpace(Texto))
+        {
+            <div class="search-active-pill d-flex align-items-center gap-2">
+                <span>Búsqueda: <strong>"@Texto"</strong></span>
+                <button type="button" class="btn-clear-search" @onclick="QuitarTexto" aria-label="Quitar término de búsqueda">✕</button>
+            </div>
         }
-    </div>
-}
+
+        <!-- 4. Grilla de Productos -->
+        @if (_cargando)
+        {
+            <!-- Esqueletos de carga -->
+            <div class="grilla-productos" aria-busy="true" aria-label="Cargando productos del catálogo">
+                @for (int i = 0; i < 12; i++)
+                {
+                    <article class="card-producto card-skeleton" aria-hidden="true">
+                        <div class="skeleton-media"></div>
+                        <div class="skeleton-content">
+                            <div class="skeleton-line line-category"></div>
+                            <div class="skeleton-line line-title"></div>
+                            <div class="skeleton-line line-price"></div>
+                            <div class="skeleton-line line-button"></div>
+                        </div>
+                    </article>
+                }
+            </div>
+        }
+        else if (_productos.Count == 0)
+        {
+            <!-- Estado vacío -->
+            <div class="catalogo-vacio text-center" role="status">
+                <div class="vacio-icon-wrap" aria-hidden="true">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        <line x1="8" y1="11" x2="14" y2="11"></line>
+                    </svg>
+                </div>
+                <h2 class="vacio-titulo font-serif">No encontramos prendas con esos filtros</h2>
+                <p class="vacio-desc">Probá cambiando los filtros o buscá con otro término para descubrir más opciones.</p>
+                <button type="button" class="btn btn-primary px-4" @onclick="LimpiarFiltros">
+                    Limpiar filtros
+                </button>
+            </div>
+        }
+        else
+        {
+            <!-- Grilla real con productos -->
+            <div class="grilla-productos">
+                @foreach (var producto in _productos)
+                {
+                    var sinStock = producto.StockDisponible == 0;
+                    <article class="card-producto @(sinStock ? "producto-sin-stock" : "")">
+                        <div class="card-img-container">
+                            @if (!string.IsNullOrWhiteSpace(producto.ImagenUrl))
+                            {
+                                <img src="@producto.ImagenUrl"
+                                     alt="@producto.Nombre"
+                                     class="card-img-top card-producto-img"
+                                     loading="lazy" />
+                            }
+                            else
+                            {
+                                <div class="card-img-placeholder d-flex align-items-center justify-content-center" aria-hidden="true">
+                                    <svg class="placeholder-icon" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M12 3a2 2 0 0 1 2 2c0 1.1-.9 2-2 2a2 2 0 0 1-2-2 2 2 0 0 1 2-2z" />
+                                        <path d="M12 7v2" />
+                                        <path d="M2.5 16.5 12 9l9.5 7.5a1.5 1.5 0 0 1-.9 2.5H3.4a1.5 1.5 0 0 1-.9-2.5z" />
+                                    </svg>
+                                </div>
+                            }
+
+                            <!-- Chips de Talle y Estado -->
+                            <div class="card-chips-overlay">
+                                @if (!string.IsNullOrWhiteSpace(producto.Talle))
+                                {
+                                    var talleTexto = producto.Talle.StartsWith("Talle", StringComparison.OrdinalIgnoreCase) ||
+                                                     producto.Talle.StartsWith("Calzado", StringComparison.OrdinalIgnoreCase)
+                                        ? producto.Talle
+                                        : $"Talle {producto.Talle}";
+                                    <span class="chip-badge chip-talle">@talleTexto</span>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(producto.EstadoTexto))
+                                {
+                                    <span class="chip-badge chip-estado">@producto.EstadoTexto</span>
+                                }
+                            </div>
+
+                            <!-- Overlay Vendido si no hay stock -->
+                            @if (sinStock)
+                            {
+                                <div class="overlay-vendido" aria-hidden="true">
+                                    <span class="badge-vendido">Vendido</span>
+                                </div>
+                            }
+                        </div>
+
+                        <div class="card-body d-flex flex-column justify-content-between">
+                            <div class="card-info-top">
+                                @if (!string.IsNullOrWhiteSpace(producto.NombreCategoria))
+                                {
+                                    <span class="producto-categoria">@producto.NombreCategoria</span>
+                                }
+                                <h2 class="producto-nombre">@producto.Nombre</h2>
+                            </div>
+
+                            <div class="card-action-bottom">
+                                <div class="producto-precio-wrap">
+                                    <span class="producto-precio @(sinStock ? "precio-agotado" : "")">
+                                        @producto.Precio.ToString("C", new CultureInfo("es-AR"))
+                                    </span>
+                                </div>
+
+                                @if (sinStock)
+                                {
+                                    <button type="button" class="btn btn-vendido w-100" disabled aria-disabled="true">
+                                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                            <circle cx="12" cy="12" r="10"></circle>
+                                            <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
+                                        </svg>
+                                        <span>Vendido</span>
+                                    </button>
+                                }
+                                else
+                                {
+                                    <button type="button"
+                                            class="btn btn-primary w-100 btn-agregar"
+                                            @onclick="() => AgregarAlCarritoAsync(producto)"
+                                            aria-label="Agregar @producto.Nombre al carrito">
+                                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                            <circle cx="9" cy="21" r="1"></circle>
+                                            <circle cx="20" cy="21" r="1"></circle>
+                                            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                                        </svg>
+                                        <span>Agregar al carrito</span>
+                                    </button>
+                                }
+                            </div>
+                        </div>
+                    </article>
+                }
+            </div>
+
+            <!-- 5. Paginación centrada -->
+            @if (TotalPaginas > 1)
+            {
+                <nav aria-label="Navegación de páginas de prendas" class="catalogo-paginacion">
+                    <div class="paginacion-controls">
+                        <button type="button"
+                                class="btn-page-nav btn-page-prev"
+                                disabled="@(Page.GetValueOrDefault(1) <= 1)"
+                                @onclick="() => IrAPagina(Page.GetValueOrDefault(1) - 1)"
+                                aria-label="Página anterior">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <polyline points="15 18 9 12 15 6"></polyline>
+                            </svg>
+                            <span>Anterior</span>
+                        </button>
+
+                        <div class="paginacion-numeros">
+                            @for (int i = 1; i <= TotalPaginas; i++)
+                            {
+                                var nro = i;
+                                <button type="button"
+                                        class="btn-page-num @(Page.GetValueOrDefault(1) == nro ? "active" : "")"
+                                        aria-current="@(Page.GetValueOrDefault(1) == nro ? "page" : "false")"
+                                        @onclick="() => IrAPagina(nro)">
+                                    @nro
+                                </button>
+                            }
+                        </div>
+
+                        <button type="button"
+                                class="btn-page-nav btn-page-next"
+                                disabled="@(Page.GetValueOrDefault(1) >= TotalPaginas)"
+                                @onclick="() => IrAPagina(Page.GetValueOrDefault(1) + 1)"
+                                aria-label="Página siguiente">
+                            <span>Siguiente</span>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <polyline points="9 18 15 12 9 6"></polyline>
+                            </svg>
+                        </button>
+                    </div>
+                    <span class="paginacion-nota">(12 prendas por página)</span>
+                </nav>
+            }
+        }
+    </section>
+
+    <!-- 6. Banner de Consignación -->
+    <section class="banner-consignacion" aria-label="Consignación de ropa">
+        <div class="banner-content">
+            <div class="banner-badge">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <polyline points="23 4 23 10 17 10"></polyline>
+                    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                </svg>
+                <span>Consignación Hernando</span>
+            </div>
+            <h3 class="banner-title font-serif">Dejá tu ropa en consignación</h3>
+            <p class="banner-desc">
+                Convertí la ropa que ya no usan tus peques en plata y dale una segunda vida.
+            </p>
+        </div>
+        <div class="banner-action">
+            <a href="/consignacion" class="btn btn-consignacion">
+                <span>Cómo funciona</span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                    <polyline points="12 5 19 12 12 19"></polyline>
+                </svg>
+            </a>
+        </div>
+    </section>
+
+    <!-- Toast flotante de microinteracción al agregar al carrito -->
+    @if (_mostrarToast)
+    {
+        <div class="cart-toast" role="status" aria-live="polite">
+            <div class="toast-icon-circle" aria-hidden="true">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+            </div>
+            <div class="toast-text-wrap">
+                <span class="toast-headline">¡Prenda agregada!</span>
+                <span class="toast-detail">@_toastMensaje</span>
+            </div>
+        </div>
+    }
+
+    <!-- Modal / Hoja inferior adaptable de Filtros para Móviles -->
+    @if (_modalFiltrosMovilAbierto)
+    {
+        <div class="modal-backdrop-custom" @onclick="CerrarModalFiltrosMovil" aria-hidden="true"></div>
+        <div class="modal-sheet-custom" role="dialog" aria-modal="true" aria-labelledby="modal-filtros-title">
+            <div class="sheet-header">
+                <div class="d-flex align-items-center gap-2">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--brand-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <line x1="4" y1="21" x2="4" y2="14"></line>
+                        <line x1="4" y1="10" x2="4" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="12"></line>
+                        <line x1="12" y1="8" x2="12" y2="3"></line>
+                        <line x1="20" y1="21" x2="20" y2="16"></line>
+                        <line x1="20" y1="12" x2="20" y2="3"></line>
+                        <line x1="1" y1="14" x2="7" y2="14"></line>
+                        <line x1="9" y1="8" x2="15" y2="8"></line>
+                        <line x1="17" y1="16" x2="23" y2="16"></line>
+                    </svg>
+                    <h3 id="modal-filtros-title" class="sheet-title font-serif m-0">Filtrar prendas</h3>
+                </div>
+                <button type="button" class="btn-close-sheet" @onclick="CerrarModalFiltrosMovil" aria-label="Cerrar ventana de filtros">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="sheet-body">
+                <div class="mb-3">
+                    <label for="mobile-talle" class="form-label fw-bold small">Talle</label>
+                    <select id="mobile-talle" class="form-select" @bind="_modalTalle">
+                        <option value="">Todos los talles</option>
+                        @foreach (var t in _opcionesFiltro.Talles)
+                        {
+                            <option value="@t.Valor">@t.Texto @(t.Cantidad > 0 ? $"({t.Cantidad})" : "")</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label for="mobile-estado" class="form-label fw-bold small">Estado de la prenda</label>
+                    <select id="mobile-estado" class="form-select" @bind="_modalEstado">
+                        <option value="">Todos los estados</option>
+                        @foreach (var e in _opcionesFiltro.Estados)
+                        {
+                            <option value="@e.Valor">@e.Texto @(e.Cantidad > 0 ? $"({e.Cantidad})" : "")</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="form-check form-switch pt-2 mb-2">
+                    <input class="form-check-input switch-emerald" type="checkbox" id="mobile-disponibles" @bind="_modalSoloDisponibles" />
+                    <label class="form-check-label fw-medium small" for="mobile-disponibles">Solo disponibles (con stock)</label>
+                </div>
+            </div>
+
+            <div class="sheet-footer d-flex gap-2">
+                <button type="button" class="btn btn-outline-secondary flex-fill" @onclick="LimpiarFiltrosMovil">Limpiar</button>
+                <button type="button" class="btn btn-primary flex-fill" @onclick="AplicarFiltrosMovil">Aplicar</button>
+            </div>
+        </div>
+    }
+</div>
 
 @code {
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
+
+    [SupplyParameterFromQuery(Name = "categoriaId")]
+    public int? CategoriaId { get; set; }
+
+    [SupplyParameterFromQuery(Name = "talle")]
+    public string? Talle { get; set; }
+
+    [SupplyParameterFromQuery(Name = "estado")]
+    public string? Estado { get; set; }
+
+    [SupplyParameterFromQuery(Name = "texto")]
+    public string? Texto { get; set; }
+
+    [SupplyParameterFromQuery(Name = "soloDisponibles")]
+    public bool? SoloDisponibles { get; set; }
+
+    [SupplyParameterFromQuery(Name = "orden")]
+    public string? Orden { get; set; }
+
+    [SupplyParameterFromQuery(Name = "page")]
+    public int? Page { get; set; }
+
     private readonly List<ProductoDto> _productos = new();
+    private PaginaDto<ProductoDto> _pagina = new();
+    private OpcionesFiltroCatalogoDto _opcionesFiltro = new();
+
     private int? _clienteId;
     private bool _cargando = true;
     private string? _mensajeExito;
     private string? _mensajeError;
     private string _claseMensajeError = "alert-warning";
+    private bool _mostrarToast;
+    private string? _toastMensaje;
 
-    [CascadingParameter]
-    private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
+    private bool _modalFiltrosMovilAbierto;
+    private string? _modalTalle;
+    private string? _modalEstado;
+    private bool _modalSoloDisponibles;
+
+    private int TotalPaginas => _pagina.PageSize > 0
+        ? Math.Max(1, (int)Math.Ceiling((double)_pagina.Total / _pagina.PageSize))
+        : 1;
+
+    private int FiltrosActivosCount =>
+        (!string.IsNullOrWhiteSpace(Talle) ? 1 : 0) +
+        (!string.IsNullOrWhiteSpace(Estado) ? 1 : 0) +
+        (SoloDisponibles == true ? 1 : 0);
 
     protected override async Task OnInitializedAsync()
     {
-        // El catálogo es público: sin sesión, _clienteId queda null y se cargan los productos igual.
         if (AuthenticationStateTask is not null)
         {
             var authenticationState = await AuthenticationStateTask;
@@ -115,14 +643,95 @@ else
 
         try
         {
-            var productos = await CatalogoServicio.ObtenerProductosAsync();
+            _opcionesFiltro = await CatalogoServicio.ObtenerOpcionesFiltroAsync();
+        }
+        catch
+        {
+            _opcionesFiltro = new OpcionesFiltroCatalogoDto();
+        }
+
+        // Si falló o la base no tiene categorías/talles aún, aseguramos listas válidas
+        if (_opcionesFiltro.Talles.Count == 0)
+        {
+            _opcionesFiltro.Talles = TalleConstantes.Valores
+                .Select(t => new OpcionFiltroDto { Valor = t, Texto = t, Cantidad = 0 })
+                .ToList();
+        }
+
+        if (_opcionesFiltro.Estados.Count == 0)
+        {
+            _opcionesFiltro.Estados = Enum.GetValues<EstadoPrenda>()
+                .Select(e => new OpcionFiltroDto { Valor = e.ToString(), Texto = EstadoPrendaHelper.ObtenerTexto(e), Cantidad = 0 })
+                .ToList();
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await CargarProductosAsync();
+    }
+
+    private async Task CargarProductosAsync()
+    {
+        _cargando = true;
+        _mensajeError = null;
+
+        try
+        {
+            EstadoPrenda? estadoEnum = null;
+            if (!string.IsNullOrWhiteSpace(Estado) &&
+                Enum.TryParse<EstadoPrenda>(Estado, ignoreCase: true, out var parsedEstado) &&
+                Enum.IsDefined(parsedEstado))
+            {
+                estadoEnum = parsedEstado;
+            }
+
+            OrdenCatalogo ordenEnum = OrdenCatalogo.MasNuevos;
+            if (!string.IsNullOrWhiteSpace(Orden) &&
+                Enum.TryParse<OrdenCatalogo>(Orden, ignoreCase: true, out var parsedOrden) &&
+                Enum.IsDefined(parsedOrden))
+            {
+                ordenEnum = parsedOrden;
+            }
+
+            string? talleValido = null;
+            if (!string.IsNullOrWhiteSpace(Talle) && TalleConstantes.EsValido(Talle))
+            {
+                talleValido = Talle.Trim();
+            }
+
+            var paginaActual = Page.GetValueOrDefault(1);
+            if (paginaActual < 1)
+                paginaActual = 1;
+
+            var textoFiltro = string.IsNullOrWhiteSpace(Texto) ? null : Texto.Trim();
+            if (textoFiltro != null && textoFiltro.Length > CatalogoConstantes.TextoMaximo)
+            {
+                textoFiltro = textoFiltro.Substring(0, CatalogoConstantes.TextoMaximo);
+            }
+
+            var filtros = new CatalogoFiltrosDto
+            {
+                CategoriaId = CategoriaId.HasValue && CategoriaId.Value > 0 ? CategoriaId.Value : null,
+                Talle = talleValido,
+                Estado = estadoEnum,
+                Texto = textoFiltro,
+                SoloDisponibles = SoloDisponibles.GetValueOrDefault(false),
+                Orden = ordenEnum,
+                Page = paginaActual,
+                PageSize = CatalogoConstantes.PageSizePorDefecto
+            };
+
+            _pagina = await CatalogoServicio.BuscarProductosAsync(filtros);
             _productos.Clear();
-            _productos.AddRange(productos);
+            _productos.AddRange(_pagina.Items);
         }
         catch (Exception)
         {
             _mensajeError = "No se pudieron cargar los productos. Intentá de nuevo.";
             _claseMensajeError = "alert-danger";
+            _productos.Clear();
+            _pagina = new PaginaDto<ProductoDto>();
         }
         finally
         {
@@ -155,15 +764,159 @@ else
             var unidades = carritoActualizado.Items.Sum(i => i.Cantidad);
             var total = carritoActualizado.Total.ToString("C", new CultureInfo("es-AR"));
             _mensajeExito = $"Agregaste '{producto.Nombre}' al carrito. Tu carrito: {unidades} unidad(es), total {total}.";
+
+            _toastMensaje = $"Sumamos '{producto.Nombre}' a tu carrito.";
+            _mostrarToast = true;
+
+            _ = Task.Delay(3000).ContinueWith(_ =>
+            {
+                _mostrarToast = false;
+                InvokeAsync(StateHasChanged);
+            });
         }
         catch (StockInsuficienteException ex)
         {
             _mensajeError = ex.Message;
+            _claseMensajeError = "alert-warning";
         }
         catch (Exception)
         {
             _mensajeError = "No se pudo agregar el producto. Intentá de nuevo.";
             _claseMensajeError = "alert-danger";
         }
+    }
+
+    private void SeleccionarCategoria(int? categoriaId)
+    {
+        NavegarConFiltros(nuevaCategoria: categoriaId, cambiarCategoria: true, nuevaPagina: 1);
+    }
+
+    private void OnTalleCambiado(ChangeEventArgs e)
+    {
+        var valor = e.Value?.ToString();
+        var nuevoTalle = string.IsNullOrWhiteSpace(valor) ? null : valor;
+        NavegarConFiltros(nuevoTalle: nuevoTalle, cambiarTalle: true, nuevaPagina: 1);
+    }
+
+    private void OnEstadoCambiado(ChangeEventArgs e)
+    {
+        var valor = e.Value?.ToString();
+        var nuevoEstado = string.IsNullOrWhiteSpace(valor) ? null : valor;
+        NavegarConFiltros(nuevoEstado: nuevoEstado, cambiarEstado: true, nuevaPagina: 1);
+    }
+
+    private void OnSoloDisponiblesCambiado(ChangeEventArgs e)
+    {
+        var nuevoSoloDisponibles = e.Value is bool b ? b : false;
+        NavegarConFiltros(nuevoSoloDisponibles: nuevoSoloDisponibles, cambiarSoloDisponibles: true, nuevaPagina: 1);
+    }
+
+    private void OnOrdenCambiado(ChangeEventArgs e)
+    {
+        var valor = e.Value?.ToString();
+        var nuevoOrden = string.IsNullOrWhiteSpace(valor) ? nameof(OrdenCatalogo.MasNuevos) : valor;
+        NavegarConFiltros(nuevoOrden: nuevoOrden, cambiarOrden: true, nuevaPagina: 1);
+    }
+
+    private void QuitarTexto()
+    {
+        NavegarConFiltros(nuevoTexto: null, cambiarTexto: true, nuevaPagina: 1);
+    }
+
+    private void IrAPagina(int pagina)
+    {
+        if (pagina < 1 || pagina == Page.GetValueOrDefault(1) || pagina > TotalPaginas)
+            return;
+
+        NavegarConFiltros(nuevaPagina: pagina);
+    }
+
+    private void LimpiarFiltros()
+    {
+        Navigation.NavigateTo("/catalogo");
+    }
+
+    private void NavegarConFiltros(
+        int? nuevaCategoria = null,
+        bool cambiarCategoria = false,
+        string? nuevoTalle = null,
+        bool cambiarTalle = false,
+        string? nuevoEstado = null,
+        bool cambiarEstado = false,
+        bool? nuevoSoloDisponibles = null,
+        bool cambiarSoloDisponibles = false,
+        string? nuevoOrden = null,
+        bool cambiarOrden = false,
+        string? nuevoTexto = null,
+        bool cambiarTexto = false,
+        int? nuevaPagina = null)
+    {
+        var queryParams = new Dictionary<string, object?>();
+
+        var catId = cambiarCategoria ? nuevaCategoria : CategoriaId;
+        if (catId.HasValue && catId.Value > 0)
+            queryParams["categoriaId"] = catId.Value;
+
+        var t = cambiarTalle ? nuevoTalle : Talle;
+        if (!string.IsNullOrWhiteSpace(t))
+            queryParams["talle"] = t;
+
+        var e = cambiarEstado ? nuevoEstado : Estado;
+        if (!string.IsNullOrWhiteSpace(e))
+            queryParams["estado"] = e;
+
+        var txt = cambiarTexto ? nuevoTexto : Texto;
+        if (!string.IsNullOrWhiteSpace(txt))
+            queryParams["texto"] = txt;
+
+        var sd = cambiarSoloDisponibles ? nuevoSoloDisponibles : SoloDisponibles;
+        if (sd.HasValue && sd.Value)
+            queryParams["soloDisponibles"] = true;
+
+        var ord = cambiarOrden ? nuevoOrden : Orden;
+        if (!string.IsNullOrWhiteSpace(ord) && !string.Equals(ord, nameof(OrdenCatalogo.MasNuevos), StringComparison.OrdinalIgnoreCase))
+            queryParams["orden"] = ord;
+
+        var p = nuevaPagina ?? (cambiarCategoria || cambiarTalle || cambiarEstado || cambiarSoloDisponibles || cambiarTexto || cambiarOrden ? 1 : Page.GetValueOrDefault(1));
+        if (p > 1)
+            queryParams["page"] = p;
+
+        var url = Navigation.GetUriWithQueryParameters("/catalogo", queryParams);
+        Navigation.NavigateTo(url);
+    }
+
+    private void AbrirModalFiltrosMovil()
+    {
+        _modalTalle = Talle;
+        _modalEstado = Estado;
+        _modalSoloDisponibles = SoloDisponibles.GetValueOrDefault(false);
+        _modalFiltrosMovilAbierto = true;
+    }
+
+    private void CerrarModalFiltrosMovil()
+    {
+        _modalFiltrosMovilAbierto = false;
+    }
+
+    private void AplicarFiltrosMovil()
+    {
+        _modalFiltrosMovilAbierto = false;
+        NavegarConFiltros(
+            nuevoTalle: _modalTalle,
+            cambiarTalle: true,
+            nuevoEstado: _modalEstado,
+            cambiarEstado: true,
+            nuevoSoloDisponibles: _modalSoloDisponibles,
+            cambiarSoloDisponibles: true,
+            nuevaPagina: 1);
+    }
+
+    private void LimpiarFiltrosMovil()
+    {
+        _modalTalle = null;
+        _modalEstado = null;
+        _modalSoloDisponibles = false;
+        _modalFiltrosMovilAbierto = false;
+        LimpiarFiltros();
     }
 }
