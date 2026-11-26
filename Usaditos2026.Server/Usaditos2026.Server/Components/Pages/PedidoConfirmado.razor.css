@@ -1,0 +1,817 @@
+/* ==========================================================================
+   PedidoConfirmado.razor.css - Usaditos Hernando (Boutique Lúdica)
+   Paleta "Selva" y tokens de DESIGN.md
+   ========================================================================== */
+
+.confirmado-page {
+    position: relative;
+    width: 100%;
+    min-height: calc(100vh - 16rem);
+}
+
+.confirmado-content-wrap {
+    max-width: 960px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+/* ==========================================================================
+   ESTADO DE CARGA
+   ========================================================================== */
+.confirmado-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4rem 1rem;
+    color: var(--text-muted);
+}
+
+.confirmado-loading-text {
+    font-size: 1.1rem;
+    font-weight: 500;
+}
+
+/* ==========================================================================
+   ESTADO: NO ENCONTRADO
+   ========================================================================== */
+.card-no-encontrado-wrapper {
+    width: 100%;
+    padding: 3rem 0;
+}
+
+.card-no-encontrado-box {
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-soft);
+    border-radius: 20px;
+    padding: 3rem 1.5rem;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    max-width: 540px;
+    margin: 0 auto;
+    box-shadow: var(--shadow-sm);
+}
+
+.no-encontrado-icon-circle {
+    width: 76px;
+    height: 76px;
+    border-radius: 50%;
+    background-color: #FAF8F2;
+    color: var(--color-error);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1.25rem;
+}
+
+.no-encontrado-titulo {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--text-main);
+    margin-bottom: 0.5rem;
+}
+
+.no-encontrado-descripcion {
+    font-size: 0.975rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+    margin-bottom: 1.5rem;
+}
+
+/* ==========================================================================
+   PARTÍCULAS SUTILES DE CONFETI EN NARANJA Y AMARILLO
+   ========================================================================== */
+.confetti-container {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 0;
+}
+
+.confetti-particle {
+    position: absolute;
+    border-radius: 9999px;
+    opacity: 0.45;
+    animation: floatParticle 6s ease-in-out infinite alternate;
+}
+
+.confetti-particle.p1 {
+    top: 5%;
+    left: 12%;
+    width: 14px;
+    height: 14px;
+    background-color: var(--brand-accent-orange);
+    animation-delay: 0s;
+}
+
+.confetti-particle.p2 {
+    top: 15%;
+    right: 15%;
+    width: 18px;
+    height: 18px;
+    background-color: var(--brand-accent-yellow);
+    animation-delay: 1.2s;
+}
+
+.confetti-particle.p3 {
+    top: 30%;
+    left: 8%;
+    width: 12px;
+    height: 24px;
+    background-color: var(--brand-primary-soft);
+    border-radius: 6px;
+    transform: rotate(35deg);
+    animation-delay: 2.5s;
+}
+
+.confetti-particle.p4 {
+    top: 25%;
+    right: 10%;
+    width: 10px;
+    height: 20px;
+    background-color: var(--brand-accent-orange);
+    border-radius: 4px;
+    transform: rotate(-25deg);
+    animation-delay: 0.8s;
+}
+
+.confetti-particle.p5 {
+    top: 45%;
+    left: 18%;
+    width: 16px;
+    height: 16px;
+    background-color: var(--brand-accent-yellow);
+    animation-delay: 3s;
+}
+
+.confetti-particle.p6 {
+    top: 40%;
+    right: 22%;
+    width: 12px;
+    height: 12px;
+    background-color: var(--brand-primary);
+    animation-delay: 1.8s;
+}
+
+@keyframes floatParticle {
+    0% { transform: translateY(0) rotate(0deg); }
+    100% { transform: translateY(-16px) rotate(15deg); }
+}
+
+/* ==========================================================================
+   1. ENCABEZADO CENTRADO CON CHECK GRANDE Y GLOW
+   ========================================================================== */
+.confirmado-header-centrado {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding-top: 1rem;
+    position: relative;
+    z-index: 1;
+}
+
+.check-glow-container {
+    position: relative;
+    margin-bottom: 1.25rem;
+}
+
+.check-glow-container::before {
+    content: '';
+    position: absolute;
+    inset: -8px;
+    background: radial-gradient(circle, rgba(11, 122, 94, 0.25) 0%, rgba(255, 138, 61, 0.15) 60%, transparent 80%);
+    border-radius: 50%;
+    filter: blur(12px);
+    z-index: 0;
+}
+
+.check-circle-big {
+    position: relative;
+    width: 92px;
+    height: 92px;
+    border-radius: 50%;
+    background-color: var(--brand-primary);
+    color: #FFFFFF;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 24px rgba(11, 122, 94, 0.28);
+    z-index: 1;
+}
+
+.micro-badge {
+    position: absolute;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+}
+
+.micro-badge.badge-celebrate {
+    top: -4px;
+    right: -4px;
+    background-color: var(--brand-accent-orange);
+    color: #FFFFFF;
+}
+
+.micro-badge.badge-leaf {
+    bottom: -4px;
+    left: -4px;
+    background-color: var(--brand-accent-yellow);
+    color: var(--text-main);
+}
+
+.badge-operacion-exitosa {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background-color: var(--brand-primary-soft);
+    color: var(--brand-primary);
+    font-size: 0.825rem;
+    font-weight: 700;
+    padding: 0.25rem 0.85rem;
+    border-radius: 9999px;
+    margin-bottom: 0.65rem;
+}
+
+.confirmado-titulo {
+    font-size: 2.25rem;
+    font-weight: 700;
+    color: var(--brand-primary);
+    margin-bottom: 0.35rem;
+    line-height: 1.15;
+}
+
+@media (min-width: 768px) {
+    .confirmado-titulo {
+        font-size: 2.75rem;
+    }
+}
+
+.confirmado-subtitulo {
+    font-size: 1.1rem;
+    color: var(--text-muted);
+    max-width: 480px;
+    margin-bottom: 0;
+    line-height: 1.5;
+}
+
+/* ==========================================================================
+   2. TARJETA RESUMEN DEL PEDIDO
+   ========================================================================== */
+.pedido-card-resumen {
+    position: relative;
+    z-index: 1;
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-soft);
+    border-radius: 18px;
+    padding: 1.5rem;
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+@media (min-width: 768px) {
+    .pedido-card-resumen {
+        padding: 2rem;
+    }
+}
+
+.pedido-card-header {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    border-bottom: 1px solid var(--border-soft);
+    padding-bottom: 1.25rem;
+}
+
+@media (min-width: 768px) {
+    .pedido-card-header {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+    }
+}
+
+.pedido-receipt-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background-color: var(--brand-primary-soft);
+    color: var(--brand-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.pedido-id-text {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+.pedido-fecha-text {
+    font-size: 0.95rem;
+    color: var(--text-muted);
+}
+
+.pedido-ubicacion-text {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    display: block;
+}
+
+.pedido-chips-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.chip-estado {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.825rem;
+    font-weight: 700;
+    padding: 0.35rem 0.75rem;
+    border-radius: 9999px;
+}
+
+.chip-estado.confirmado {
+    background-color: var(--brand-primary-soft);
+    color: var(--brand-primary);
+}
+
+.chip-pulse-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: var(--brand-primary);
+    animation: pulse 1.8s infinite;
+}
+
+.chip-estado.pago-pendiente {
+    background-color: rgba(255, 138, 61, 0.15);
+    color: #A34800;
+}
+
+/* Lista de Prendas */
+.pedido-items-lista {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+}
+
+.pedido-item-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.85rem;
+    background-color: #FAF8F2;
+    border-radius: 12px;
+    transition: background-color 0.15s ease;
+}
+
+.pedido-item-row:hover {
+    background-color: #F4EFE2;
+}
+
+.pedido-item-thumb {
+    width: 64px;
+    height: 64px;
+    border-radius: 10px;
+    overflow: hidden;
+    background-color: #EFECE1;
+    flex-shrink: 0;
+}
+
+.pedido-item-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.pedido-thumb-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+}
+
+.pedido-item-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.pedido-item-meta-badges {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-bottom: 0.25rem;
+    flex-wrap: wrap;
+}
+
+.badge-item-estado {
+    background-color: var(--brand-primary-soft);
+    color: var(--brand-primary);
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+}
+
+.badge-item-talle {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.pedido-item-titulo {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text-main);
+    margin: 0 0 0.15rem 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.pedido-item-cantidad {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+.pedido-item-precios {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    flex-shrink: 0;
+}
+
+.pedido-item-unitario {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+.pedido-item-subtotal {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--brand-primary);
+}
+
+/* Barra de Total */
+.pedido-total-bar {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1.25rem;
+    background-color: #FAF8F2;
+    border-radius: 12px;
+}
+
+@media (min-width: 768px) {
+    .pedido-total-bar {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+    }
+}
+
+.total-der-label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.total-der-monto {
+    display: block;
+    font-size: 1.85rem;
+    font-weight: 700;
+    color: var(--brand-primary);
+    line-height: 1;
+}
+
+/* ==========================================================================
+   3. BLOQUE DINÁMICO 'QUÉ SIGUE'
+   ========================================================================== */
+.bloque-que-sigue {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.bloque-header-tag {
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--brand-accent-orange);
+    display: block;
+    margin-bottom: 0.2rem;
+}
+
+.bloque-header-title {
+    font-size: 1.65rem;
+    font-weight: 700;
+    color: var(--brand-primary);
+    margin-bottom: 0.25rem;
+}
+
+.bloque-header-sub {
+    font-size: 0.95rem;
+    color: var(--text-muted);
+    margin-bottom: 0;
+}
+
+.instrucciones-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.instruccion-card {
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-soft);
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.instruccion-card-header {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    border-bottom: 1px solid var(--border-soft);
+    padding-bottom: 1rem;
+}
+
+@media (min-width: 576px) {
+    .instruccion-card-header {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+    }
+}
+
+.instruccion-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.instruccion-avatar.primary {
+    background-color: var(--brand-primary-soft);
+    color: var(--brand-primary);
+}
+
+.instruccion-avatar.orange {
+    background-color: rgba(255, 138, 61, 0.15);
+    color: var(--brand-accent-orange);
+}
+
+.instruccion-titulo {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--text-main);
+    margin: 0;
+    line-height: 1.25;
+}
+
+.instruccion-subtitulo {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+.badge-comprobante-pendiente {
+    font-size: 0.775rem;
+    font-weight: 700;
+    background-color: rgba(255, 138, 61, 0.15);
+    color: #A34800;
+    padding: 0.25rem 0.7rem;
+    border-radius: 9999px;
+    white-space: nowrap;
+}
+
+.badge-tag-efectivo {
+    font-size: 0.775rem;
+    font-weight: 700;
+    background-color: rgba(255, 138, 61, 0.2);
+    color: #A34800;
+    padding: 0.25rem 0.7rem;
+    border-radius: 9999px;
+    white-space: nowrap;
+}
+
+.badge-punto-oficial {
+    font-size: 0.775rem;
+    font-weight: 700;
+    background-color: var(--brand-primary-soft);
+    color: var(--brand-primary);
+    padding: 0.25rem 0.7rem;
+    border-radius: 9999px;
+    white-space: nowrap;
+}
+
+.badge-destino-registrado {
+    font-size: 0.775rem;
+    font-weight: 700;
+    background-color: var(--brand-primary-soft);
+    color: var(--brand-primary);
+    padding: 0.25rem 0.7rem;
+    border-radius: 9999px;
+    white-space: nowrap;
+}
+
+/* Grillas de Datos de Transferencia y Retiro */
+.transfer-info-grid,
+.retiro-info-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.85rem;
+}
+
+@media (min-width: 768px) {
+    .transfer-info-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .retiro-info-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+.transfer-grid-box,
+.retiro-grid-box {
+    background-color: #FAF8F2;
+    border-radius: 12px;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.transfer-box-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    display: block;
+    margin-bottom: 0.25rem;
+}
+
+.transfer-box-value {
+    font-size: 1.1rem;
+    margin-bottom: 0;
+}
+
+.btn-copy-alias-mini {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.45rem 0.75rem;
+    background-color: #FFFFFF;
+    border: 1px solid var(--border-soft);
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--brand-primary);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    box-shadow: var(--shadow-sm);
+}
+
+.btn-copy-alias-mini:hover {
+    background-color: var(--brand-primary-soft);
+}
+
+.btn-copy-alias-mini.copied {
+    background-color: var(--brand-primary);
+    color: #FFFFFF;
+}
+
+.whatsapp-alert-box {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    background-color: rgba(255, 138, 61, 0.1);
+    border: 1px solid rgba(255, 138, 61, 0.25);
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+    font-size: 0.925rem;
+    color: #6E3000;
+}
+
+.pago-efectivo-box {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.info-recordatorio-pedido {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    background-color: #FAF8F2;
+    padding: 0.85rem 1rem;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    color: var(--text-main);
+}
+
+.aviso-retiro-box {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    background-color: var(--brand-primary-soft);
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+    font-size: 0.925rem;
+    color: var(--brand-primary);
+}
+
+.envio-direccion-box {
+    background-color: #FAF8F2;
+    padding: 1.15rem;
+    border-radius: 12px;
+}
+
+/* ==========================================================================
+   4. BOTONES DE ACCIÓN CENTRADOS
+   ========================================================================== */
+.confirmado-botones-accion {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding-top: 1rem;
+    position: relative;
+    z-index: 1;
+}
+
+@media (min-width: 576px) {
+    .confirmado-botones-accion {
+        flex-direction: row;
+    }
+}
+
+.btn-accion-pedidos {
+    min-width: 220px;
+    padding: 0.9rem 1.75rem;
+    font-size: 1rem;
+    font-weight: 700;
+    border-radius: 12px;
+    box-shadow: 0 4px 16px rgba(11, 122, 94, 0.25);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.btn-accion-pedidos:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(11, 122, 94, 0.35);
+}
+
+.btn-accion-catalogo {
+    min-width: 200px;
+    padding: 0.9rem 1.75rem;
+    font-size: 1rem;
+    font-weight: 700;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    transition: transform 0.15s ease, background-color 0.15s ease;
+}
+
+.btn-accion-catalogo:hover {
+    transform: translateY(-2px);
+}
