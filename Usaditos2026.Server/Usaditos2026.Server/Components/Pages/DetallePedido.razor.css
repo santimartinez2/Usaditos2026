@@ -1,0 +1,915 @@
+/* ==========================================================================
+   DetallePedido.razor.css - Usaditos Hernando (Boutique Lúdica)
+   Tokens: DESIGN.md y paleta "Selva"
+   ========================================================================== */
+
+.detalle-pedido-page {
+    width: 100%;
+    min-height: calc(100vh - 16rem);
+    padding-bottom: 3.5rem;
+}
+
+.detalle-container {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 1.5rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.75rem;
+}
+
+@media (min-width: 768px) {
+    .detalle-container {
+        padding: 2.5rem 1.5rem;
+        gap: 2rem;
+    }
+}
+
+/* ==========================================================================
+   ESTADO DE CARGA
+   ========================================================================== */
+.detalle-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 5rem 1rem;
+    color: var(--text-muted);
+}
+
+.detalle-loading-text {
+    font-size: 1.05rem;
+    font-weight: 500;
+}
+
+/* ==========================================================================
+   ESTADO: NO ENCONTRADO
+   ========================================================================== */
+.pedido-no-encontrado-box {
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-soft);
+    border-radius: 20px;
+    padding: 3.5rem 1.5rem;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    max-width: 540px;
+    margin: 3rem auto;
+    box-shadow: var(--shadow-sm);
+}
+
+.no-encontrado-icon-wrap {
+    width: 76px;
+    height: 76px;
+    border-radius: 50%;
+    background-color: #FAF8F2;
+    color: var(--color-error);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1.25rem;
+}
+
+.no-encontrado-title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--text-main);
+    margin-bottom: 0.5rem;
+}
+
+.no-encontrado-desc {
+    font-size: 0.975rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+    margin-bottom: 1.5rem;
+}
+
+/* ==========================================================================
+   2. ENCABEZADO Y BREADCRUMB
+   ========================================================================== */
+.detalle-header-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.btn-volver-pedidos {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 9999px;
+    background-color: var(--bg-surface);
+    color: var(--brand-primary);
+    font-size: 0.875rem;
+    font-weight: 700;
+    border: 1px solid var(--border-soft);
+    box-shadow: var(--shadow-sm);
+    text-decoration: none;
+    align-self: flex-start;
+    transition: all 0.15s ease-in-out;
+}
+
+.btn-volver-pedidos:hover {
+    background-color: #F8F5EC;
+    color: var(--brand-primary-hover);
+    text-decoration: none;
+    transform: translateX(-2px);
+}
+
+.detalle-header-card {
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-soft);
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: var(--shadow-sm);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+@media (min-width: 768px) {
+    .detalle-header-card {
+        flex-direction: row;
+        align-items: flex-end;
+        justify-content: space-between;
+        padding: 2rem;
+    }
+}
+
+.header-card-glow {
+    position: absolute;
+    top: -3rem;
+    right: -3rem;
+    width: 14rem;
+    height: 14rem;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(11, 122, 94, 0.1) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+.header-card-left {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.header-kicker {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+}
+
+.header-title-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.header-pedido-id {
+    font-size: 1.85rem;
+    font-weight: 700;
+    color: var(--text-main);
+    line-height: 1.15;
+    margin: 0;
+}
+
+@media (min-width: 768px) {
+    .header-pedido-id {
+        font-size: 2.25rem;
+    }
+}
+
+.header-fecha {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    margin: 0;
+}
+
+.header-card-right {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+@media (min-width: 768px) {
+    .header-card-right {
+        text-align: right;
+    }
+}
+
+.header-total-label {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+}
+
+.header-total-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--brand-primary);
+    line-height: 1.2;
+}
+
+/* ==========================================================================
+   3. LÍNEA DE TIEMPO / ESTADO CANCELADO
+   ========================================================================== */
+.timeline-section {
+    width: 100%;
+}
+
+.timeline-card {
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-soft);
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: var(--shadow-sm);
+}
+
+@media (min-width: 768px) {
+    .timeline-card {
+        padding: 2rem;
+    }
+}
+
+.timeline-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+}
+
+.timeline-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-main);
+    margin: 0;
+}
+
+.timeline-step-indicator {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--brand-primary);
+    background-color: var(--brand-primary-soft);
+    padding: 0.25rem 0.65rem;
+    border-radius: 9999px;
+}
+
+.timeline-steps-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    position: relative;
+}
+
+@media (min-width: 768px) {
+    .timeline-steps-grid {
+        flex-direction: row;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 0;
+    }
+}
+
+.timeline-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    flex: 1;
+}
+
+@media (min-width: 768px) {
+    .timeline-step {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: 0.75rem;
+    }
+}
+
+.step-icon-wrap {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.2s ease-in-out;
+}
+
+.step-active .step-icon-wrap {
+    background-color: var(--brand-primary);
+    color: #FFFFFF;
+    box-shadow: 0 4px 12px rgba(11, 122, 94, 0.25);
+}
+
+.step-pending .step-icon-wrap {
+    background-color: #E8F0EC;
+    color: #6E7A74;
+}
+
+.step-active .step-name {
+    color: var(--brand-primary);
+    font-weight: 700;
+}
+
+.step-pending {
+    opacity: 0.6;
+}
+
+.step-name {
+    display: block;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--text-main);
+    margin-bottom: 0.2rem;
+}
+
+.step-description {
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+    margin: 0;
+    line-height: 1.35;
+}
+
+/* Conectores horizontales entre pasos en desktop */
+.step-connector {
+    display: none;
+}
+
+@media (min-width: 768px) {
+    .step-connector {
+        display: block;
+        flex: 0.8;
+        height: 3px;
+        background-color: var(--border-soft);
+        margin-top: 24px;
+        transition: background-color 0.2s ease-in-out;
+    }
+
+    .connector-active {
+        background-color: var(--brand-primary);
+    }
+}
+
+/* Variante Cancelado */
+.banner-cancelado {
+    background-color: #FFDAD6;
+    border: 1px solid #F8B4AD;
+    border-radius: 16px;
+    padding: 1.25rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+@media (min-width: 576px) {
+    .banner-cancelado {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+    }
+}
+
+.banner-cancelado-content {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.cancelado-icon-circle {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background-color: var(--color-error);
+    color: #FFFFFF;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.cancelado-text-wrap {
+    display: flex;
+    flex-direction: column;
+}
+
+.cancelado-kicker {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #93000A;
+}
+
+.cancelado-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #93000A;
+    margin: 0;
+}
+
+.cancelado-description {
+    font-size: 0.85rem;
+    color: #742A2A;
+    margin: 0;
+    line-height: 1.4;
+}
+
+/* ==========================================================================
+   4. DISTRIBUCIÓN EN 2 COLUMNAS (GRID)
+   ========================================================================== */
+.detalle-grid-layout {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+}
+
+@media (min-width: 992px) {
+    .detalle-grid-layout {
+        grid-template-columns: 7fr 5fr;
+        gap: 1.75rem;
+        align-items: flex-start;
+    }
+}
+
+.col-prendas-wrapper,
+.col-detalles-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+/* ==========================================================================
+   5. SECCIÓN DE PRENDAS
+   ========================================================================== */
+.card-seccion-prendas {
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-soft);
+    border-radius: 16px;
+    padding: 1.25rem;
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+@media (min-width: 768px) {
+    .card-seccion-prendas {
+        padding: 1.75rem;
+    }
+}
+
+.prendas-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.seccion-title {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: var(--text-main);
+    margin: 0;
+}
+
+.badge-total-prendas {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.25rem 0.65rem;
+    border-radius: 9999px;
+    background-color: #FAF8F2;
+    border: 1px solid var(--border-soft);
+    color: var(--text-muted);
+}
+
+.prendas-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.875rem;
+}
+
+.prenda-item-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.875rem;
+    border-radius: 12px;
+    background-color: #FAF8F2;
+    border: 1px solid #F0ECE0;
+    transition: background-color 0.15s ease-in-out;
+}
+
+.prenda-item-card:hover {
+    background-color: #F4EFE3;
+}
+
+.prenda-thumb-wrap {
+    width: 68px;
+    height: 84px;
+    border-radius: 10px;
+    overflow: hidden;
+    background-color: #E8E2CF;
+    flex-shrink: 0;
+    box-shadow: 0 1px 3px rgba(20, 52, 43, 0.05);
+}
+
+.prenda-thumb-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.prenda-thumb-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    background-color: var(--brand-primary-soft);
+}
+
+.prenda-info-wrap {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.prenda-badges-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.375rem;
+}
+
+.prenda-badge-estado {
+    display: inline-block;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    padding: 0.15rem 0.5rem;
+    border-radius: 9999px;
+    background-color: var(--brand-primary-soft);
+    color: var(--brand-primary);
+}
+
+.prenda-badge-talle {
+    display: inline-block;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    padding: 0.15rem 0.5rem;
+    border-radius: 9999px;
+    background-color: var(--bg-surface);
+    color: var(--text-muted);
+    border: 1px solid var(--border-soft);
+}
+
+.prenda-nombre {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-main);
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.prenda-cantidad-precio {
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+}
+
+.prenda-subtotal-wrap {
+    text-align: right;
+    flex-shrink: 0;
+}
+
+.prenda-subtotal {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+.prendas-total-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: #F8F5EC;
+    border: 1px solid #EBE4D0;
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+    margin-top: 0.5rem;
+}
+
+.total-footer-label {
+    display: block;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text-main);
+    line-height: 1.2;
+}
+
+.total-footer-sub {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.total-footer-monto {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--brand-primary);
+}
+
+/* ==========================================================================
+   6. TARJETAS DE DETALLES (ENTREGA, PAGO, NOTA, CANCELACIÓN)
+   ========================================================================== */
+.card-detalle-box {
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-soft);
+    border-radius: 16px;
+    padding: 1.25rem;
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-direction: column;
+    gap: 0.875rem;
+}
+
+@media (min-width: 768px) {
+    .card-detalle-box {
+        padding: 1.5rem;
+    }
+}
+
+.box-header-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.box-icon-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: var(--brand-primary-soft);
+    color: var(--brand-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.box-icon-circle.icon-tertiary {
+    background-color: #FFE089;
+    color: #574500;
+}
+
+.box-caption {
+    display: block;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+}
+
+.box-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--text-main);
+    margin: 0;
+}
+
+.box-inner-highlight {
+    background-color: #FAF8F2;
+    border: 1px solid #F0ECE0;
+    border-radius: 10px;
+    padding: 0.875rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.inner-main-text {
+    font-size: 0.95rem;
+    color: var(--text-main);
+    margin: 0;
+}
+
+.inner-sub-text {
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+    margin: 0;
+}
+
+.inner-contact-line {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+    margin-top: 0.25rem;
+}
+
+.inner-caption {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    display: block;
+}
+
+.inner-alias-text {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--brand-primary);
+    letter-spacing: 0.03em;
+}
+
+.inner-titular-text {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.nota-cliente-text {
+    font-size: 0.925rem;
+    color: var(--text-main);
+    font-style: italic;
+    background-color: #FAF8F2;
+    border: 1px solid #F0ECE0;
+    border-radius: 10px;
+    padding: 0.875rem 1rem;
+    margin: 0;
+}
+
+/* ==========================================================================
+   7. GESTIÓN DE CANCELACIÓN
+   ========================================================================== */
+.card-cancelacion-box {
+    border-color: #F0ECE0;
+}
+
+.btn-cancelar-pedido {
+    width: 100%;
+    min-height: 2.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    border-radius: 10px;
+    background-color: #FFDAD6;
+    color: #93000A;
+    border: 1px solid #F8B4AD;
+    font-size: 0.925rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s ease-in-out;
+}
+
+.btn-cancelar-pedido:hover {
+    background-color: #F8B4AD;
+    color: #680005;
+}
+
+.cuadro-confirmacion-cancelar {
+    background-color: #FFF5F5;
+    border: 1px solid #FFCDD2;
+    border-radius: 12px;
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.confirm-warn-icon {
+    color: var(--color-error);
+    flex-shrink: 0;
+    margin-top: 0.125rem;
+}
+
+.confirm-text {
+    font-size: 0.9rem;
+    color: var(--text-main);
+    margin: 0;
+    line-height: 1.45;
+}
+
+.confirm-actions-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+@media (min-width: 480px) {
+    .confirm-actions-row {
+        flex-direction: row;
+    }
+}
+
+.btn-confirm-action {
+    flex: 1;
+    font-weight: 700;
+    border-radius: 8px;
+}
+
+.btn-abort-action {
+    flex: 1;
+    font-weight: 600;
+    border-radius: 8px;
+    background-color: #FFFFFF;
+}
+
+.nota-cancelacion-bloqueada {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    background-color: #FAF8F2;
+    border: 1px solid #F0ECE0;
+    border-radius: 10px;
+    padding: 0.875rem 1rem;
+    font-size: 0.875rem;
+    color: var(--text-muted);
+}
+
+.nota-cancelacion-bloqueada .info-icon {
+    color: var(--brand-primary);
+    flex-shrink: 0;
+}
+
+/* ==========================================================================
+   CHIPS COMPARTIDOS
+   ========================================================================== */
+.chip-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.25rem 0.65rem;
+    border-radius: 9999px;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+
+.chip-estado-confirmado {
+    background-color: #D6F2E7;
+    color: #005F48;
+    border: 1px solid #BDECD9;
+}
+
+.chip-estado-listo {
+    background-color: #C7EADD;
+    color: #0B7A5E;
+    border: 1px solid #B3E2D1;
+}
+
+.chip-estado-entregado {
+    background-color: #E8F0EC;
+    color: #3E4944;
+    border: 1px solid #D2DFD8;
+}
+
+.chip-estado-cancelado {
+    background-color: #FFDAD6;
+    color: #93000A;
+    border: 1px solid #F8B4AD;
+}
+
+.chip-pago-pagado {
+    background-color: #D6F2E7;
+    color: #005F48;
+    border: 1px solid #BDECD9;
+}
+
+.chip-pago-pendiente {
+    background-color: #FFDBC9;
+    color: #763300;
+    border: 1px solid #FFC4A5;
+}
+
+.chip-pago-rechazado {
+    background-color: #FFDAD6;
+    color: #93000A;
+    border: 1px solid #F8B4AD;
+}

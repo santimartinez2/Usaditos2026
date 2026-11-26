@@ -1,0 +1,791 @@
+@page "/pedidos/{id:int}"
+@rendermode InteractiveServer
+@attribute [Authorize]
+@using System.Globalization
+@using System.Security.Claims
+@using Usaditos2026.Servicios.Interfaces
+@using Usaditos2026.Shared.Constantes
+@using Usaditos2026.Shared.DTOs
+@using Usaditos2026.Shared.Excepciones
+@using Usaditos2026.Shared.Utilidades
+@inject IPedidoServicio PedidoServicio
+@inject ITiendaServicio TiendaServicio
+@inject ICatalogoServicio CatalogoServicio
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+<PageTitle>@( _pedido is not null ? $"Pedido #{_pedido.Id} | Usaditos Hernando" : "Detalle de pedido | Usaditos Hernando" )</PageTitle>
+
+<div class="detalle-pedido-page">
+    @if (_cargando)
+    {
+        <div class="detalle-loading" role="status" aria-live="polite">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Cargando el detalle del pedido...</span>
+            </div>
+            <p class="detalle-loading-text mt-3">Buscando los datos de tu pedido...</p>
+        </div>
+    }
+    else if (_noEncontrado || _pedido is null)
+    {
+        <!-- 1. ESTADO: PEDIDO NO ENCONTRADO O DE OTRO CLIENTE -->
+        <section class="pedido-no-encontrado-box" aria-label="Pedido no encontrado">
+            <div class="no-encontrado-icon-wrap" aria-hidden="true">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="8" x2="12" y2="12"></line>
+                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+            </div>
+
+            <h1 class="no-encontrado-title font-serif">Pedido no encontrado</h1>
+            <p class="no-encontrado-desc">
+                No pudimos encontrar los datos del pedido solicitado o no pertenece a tu cuenta de cliente.
+            </p>
+
+            <div class="d-flex flex-wrap align-items-center justify-content-center gap-2 mt-2">
+                <a href="/pedidos" class="btn btn-primary">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <line x1="19" y1="12" x2="5" y2="12"></line>
+                        <polyline points="12 19 5 12 12 5"></polyline>
+                    </svg>
+                    <span>Volver a Mis pedidos</span>
+                </a>
+                <a href="/catalogo" class="btn btn-outline-primary">
+                    <span>Ir al catálogo</span>
+                </a>
+            </div>
+        </section>
+    }
+    else
+    {
+        <div class="detalle-container">
+            <!-- 2. NAVEGACIÓN Y ENCABEZADO PRINCIPAL -->
+            <header class="detalle-header-section">
+                <a href="/pedidos" class="btn-volver-pedidos" aria-label="Volver al listado de Mis pedidos">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <line x1="19" y1="12" x2="5" y2="12"></line>
+                        <polyline points="12 19 5 12 12 5"></polyline>
+                    </svg>
+                    <span>Volver a Mis pedidos</span>
+                </a>
+
+                @if (!string.IsNullOrWhiteSpace(_mensajeExitoCancelacion))
+                {
+                    <div class="alert alert-success alert-dismissible fade show d-flex align-items-center gap-2" role="alert">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                        </svg>
+                        <div>@_mensajeExitoCancelacion</div>
+                        <button type="button" class="btn-close" aria-label="Cerrar aviso" @onclick="() => _mensajeExitoCancelacion = null"></button>
+                    </div>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(_mensajeErrorCancelacion))
+                {
+                    <div class="alert alert-danger alert-dismissible fade show d-flex align-items-center gap-2" role="alert">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="8" x2="12" y2="12"></line>
+                            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                        </svg>
+                        <div>@_mensajeErrorCancelacion</div>
+                        <button type="button" class="btn-close" aria-label="Cerrar aviso" @onclick="() => _mensajeErrorCancelacion = null"></button>
+                    </div>
+                }
+
+                <div class="detalle-header-card">
+                    <div class="header-card-glow" aria-hidden="true"></div>
+
+                    <div class="header-card-left">
+                        <span class="header-kicker">
+                            Detalle de compra · @(_pedido.TipoEntrega == TipoEntrega.Retiro ? "Retiro en el local" : "Envío a domicilio")
+                        </span>
+
+                        <div class="header-title-row">
+                            <h1 class="header-pedido-id font-serif">Pedido #@_pedido.Id</h1>
+                            <span class="chip-badge @ObtenerClaseChipEstado(_pedido.Estado)">
+                                @if (_pedido.Estado == PedidoConstantes.EstadoConfirmado)
+                                {
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <polyline points="20 6 9 17 4 12"></polyline>
+                                    </svg>
+                                    <span>Confirmado</span>
+                                }
+                                else if (_pedido.Estado == PedidoConstantes.EstadoListoParaRetirar)
+                                {
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+                                        <line x1="3" y1="6" x2="21" y2="6"></line>
+                                    </svg>
+                                    <span>Listo para retirar</span>
+                                }
+                                else if (_pedido.Estado == PedidoConstantes.EstadoEntregado)
+                                {
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <polyline points="20 6 9 17 4 12"></polyline>
+                                    </svg>
+                                    <span>Entregado</span>
+                                }
+                                else
+                                {
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                                    </svg>
+                                    <span>Cancelado</span>
+                                }
+                            </span>
+                        </div>
+
+                        <p class="header-fecha">
+                            Realizado el @FormatearFechaCompleta(_pedido.Fecha)
+                        </p>
+                    </div>
+
+                    <div class="header-card-right">
+                        <span class="header-total-label">Total del pedido</span>
+                        <span class="header-total-value font-serif">@_pedido.Total.ToString("C", _culturaAr)</span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- 3. LÍNEA DE TIEMPO DE ESTADOS / VARIANTE CANCELADO -->
+            <section class="timeline-section" aria-label="Seguimiento del estado del pedido">
+                @if (_pedido.Estado == PedidoConstantes.EstadoCancelado)
+                {
+                    <!-- Variante visual clara de Pedido Cancelado -->
+                    <div class="banner-cancelado" role="status">
+                        <div class="banner-cancelado-content">
+                            <div class="cancelado-icon-circle" aria-hidden="true">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg>
+                            </div>
+                            <div class="cancelado-text-wrap">
+                                <span class="cancelado-kicker">Estado del pedido</span>
+                                <h2 class="cancelado-title font-serif">Pedido Cancelado</h2>
+                                <p class="cancelado-description">
+                                    Este pedido fue cancelado y las prendas volvieron al catálogo disponible de Usaditos Hernando.
+                                </p>
+                            </div>
+                        </div>
+                        <span class="chip-badge chip-estado-cancelado shrink-0">
+                            Cancelado
+                        </span>
+                    </div>
+                }
+                else
+                {
+                    <!-- Línea de tiempo horizontal de tres pasos (Confirmado -> Listo Para Retirar -> Entregado) -->
+                    <div class="timeline-card">
+                        <div class="timeline-header">
+                            <h2 class="timeline-title font-serif">Estado de tu pedido</h2>
+                            <span class="timeline-step-indicator">
+                                @ObtenerTextoPasoActual(_pedido.Estado)
+                            </span>
+                        </div>
+
+                        <div class="timeline-steps-grid">
+                            <!-- Paso 1: Confirmado -->
+                            <div class="timeline-step @(EsPasoAlcanzado(1, _pedido.Estado) ? "step-active" : "step-pending")">
+                                <div class="step-icon-wrap" aria-hidden="true">
+                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                        <polyline points="20 6 9 17 4 12"></polyline>
+                                    </svg>
+                                </div>
+                                <div class="step-content">
+                                    <span class="step-name font-serif">Confirmado</span>
+                                    <p class="step-description">Reservamos tus prendas en el local.</p>
+                                </div>
+                            </div>
+
+                            <!-- Conector 1 -->
+                            <div class="step-connector @(EsPasoAlcanzado(2, _pedido.Estado) ? "connector-active" : "")" aria-hidden="true"></div>
+
+                            <!-- Paso 2: Listo para retirar -->
+                            <div class="timeline-step @(EsPasoAlcanzado(2, _pedido.Estado) ? "step-active" : "step-pending")">
+                                <div class="step-icon-wrap" aria-hidden="true">
+                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+                                        <line x1="3" y1="6" x2="21" y2="6"></line>
+                                        <path d="M16 10a4 4 0 0 1-8 0"></path>
+                                    </svg>
+                                </div>
+                                <div class="step-content">
+                                    <span class="step-name font-serif">Listo para retirar</span>
+                                    <p class="step-description">Te avisamos cuando esté preparado.</p>
+                                </div>
+                            </div>
+
+                            <!-- Conector 2 -->
+                            <div class="step-connector @(EsPasoAlcanzado(3, _pedido.Estado) ? "connector-active" : "")" aria-hidden="true"></div>
+
+                            <!-- Paso 3: Entregado -->
+                            <div class="timeline-step @(EsPasoAlcanzado(3, _pedido.Estado) ? "step-active" : "step-pending")">
+                                <div class="step-icon-wrap" aria-hidden="true">
+                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                                    </svg>
+                                </div>
+                                <div class="step-content">
+                                    <span class="step-name font-serif">Entregado</span>
+                                    <p class="step-description">¡Listo para seguir jugando!</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </section>
+
+            <!-- 4. CONTENIDO PRINCIPAL EN DOS COLUMNAS -->
+            <div class="detalle-grid-layout">
+                <!-- Columna Izquierda: Lista de prendas (7 cols aprox) -->
+                <div class="col-prendas-wrapper">
+                    <section class="card-seccion-prendas" aria-label="Prendas del pedido">
+                        <div class="prendas-header-row">
+                            <h2 class="seccion-title font-serif">Prendas del pedido</h2>
+                            <span class="badge-total-prendas">
+                                @_pedido.Items.Sum(i => i.Cantidad) @(_pedido.Items.Sum(i => i.Cantidad) == 1 ? "prenda" : "prendas")
+                            </span>
+                        </div>
+
+                        <div class="prendas-list">
+                            @foreach (var item in _pedido.Items)
+                            {
+                                var tieneProducto = _productosMap.TryGetValue(item.ProductoId, out var prod);
+
+                                <article class="prenda-item-card">
+                                    <!-- Foto o placeholder -->
+                                    <div class="prenda-thumb-wrap">
+                                        @if (tieneProducto && !string.IsNullOrWhiteSpace(prod?.ImagenUrl))
+                                        {
+                                            <img src="@prod.ImagenUrl"
+                                                 alt="@item.NombreProducto"
+                                                 class="prenda-thumb-img"
+                                                 loading="lazy" />
+                                        }
+                                        else
+                                        {
+                                            <div class="prenda-thumb-placeholder" aria-hidden="true">
+                                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                                    <path d="M12 3a2 2 0 0 1 2 2c0 1.1-.9 2-2 2a2 2 0 0 1-2-2 2 2 0 0 1 2-2z" />
+                                                    <path d="M12 7v2" />
+                                                    <path d="M2.5 16.5 12 9l9.5 7.5a1.5 1.5 0 0 1-.9 2.5H3.4a1.5 1.5 0 0 1-.9-2.5z" />
+                                                </svg>
+                                            </div>
+                                        }
+                                    </div>
+
+                                    <!-- Datos de la prenda -->
+                                    <div class="prenda-info-wrap">
+                                        <div class="prenda-badges-row">
+                                            @if (tieneProducto && !string.IsNullOrWhiteSpace(prod?.EstadoTexto))
+                                            {
+                                                <span class="prenda-badge-estado">@prod.EstadoTexto</span>
+                                            }
+                                            @if (tieneProducto && !string.IsNullOrWhiteSpace(prod?.Talle))
+                                            {
+                                                <span class="prenda-badge-talle">Talle @prod.Talle</span>
+                                            }
+                                        </div>
+
+                                        <h3 class="prenda-nombre font-serif">@item.NombreProducto</h3>
+
+                                        <div class="prenda-cantidad-precio">
+                                            @if (item.Cantidad > 1)
+                                            {
+                                                <span>@item.Cantidad x @item.PrecioUnitario.ToString("C", _culturaAr)</span>
+                                            }
+                                            else
+                                            {
+                                                <span>Precio unitario: @item.PrecioUnitario.ToString("C", _culturaAr)</span>
+                                            }
+                                        </div>
+                                    </div>
+
+                                    <!-- Subtotal -->
+                                    <div class="prenda-subtotal-wrap">
+                                        <span class="prenda-subtotal font-serif">@item.Subtotal.ToString("C", _culturaAr)</span>
+                                    </div>
+                                </article>
+                            }
+                        </div>
+
+                        <!-- Pie de prendas con Total -->
+                        <div class="prendas-total-footer">
+                            <div>
+                                <span class="total-footer-label">Total</span>
+                                <span class="total-footer-sub">@_pedido.Items.Sum(i => i.Cantidad) prendas en esta compra</span>
+                            </div>
+                            <span class="total-footer-monto font-serif">@_pedido.Total.ToString("C", _culturaAr)</span>
+                        </div>
+                    </section>
+                </div>
+
+                <!-- Columna Derecha: Entrega, Pago, Nota y Cancelación (5 cols aprox) -->
+                <div class="col-detalles-wrapper">
+                    <!-- 1. DATOS DE ENTREGA -->
+                    <section class="card-detalle-box" aria-label="Datos de entrega">
+                        <div class="box-header-row">
+                            <div class="box-icon-circle" aria-hidden="true">
+                                @if (_pedido.TipoEntrega == TipoEntrega.Retiro)
+                                {
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                                        <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                                    </svg>
+                                }
+                                else
+                                {
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <rect x="1" y="3" width="15" height="13"></rect>
+                                        <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon>
+                                        <circle cx="5.5" cy="18.5" r="2.5"></circle>
+                                        <circle cx="18.5" cy="18.5" r="2.5"></circle>
+                                    </svg>
+                                }
+                            </div>
+                            <div>
+                                <span class="box-caption">Datos de entrega</span>
+                                <h2 class="box-title font-serif">@(_pedido.TipoEntrega == TipoEntrega.Retiro ? "Retiro en el local" : "Envío a domicilio")</h2>
+                            </div>
+                        </div>
+
+                        <div class="box-inner-highlight">
+                            @if (_pedido.TipoEntrega == TipoEntrega.Retiro)
+                            {
+                                <p class="inner-main-text">
+                                    <strong>@(!string.IsNullOrWhiteSpace(_tiendaInfo?.Direccion) ? _tiendaInfo.Direccion : "Av. Siempre Viva 742, Hernando")</strong>
+                                </p>
+                                <p class="inner-sub-text">
+                                    @(!string.IsNullOrWhiteSpace(_tiendaInfo?.Horario) ? _tiendaInfo.Horario : "Lunes a viernes 9:00 a 18:00 hs · Sábados 10:00 a 13:00 hs")
+                                </p>
+                            }
+                            else
+                            {
+                                <p class="inner-main-text">
+                                    <strong>@_pedido.DireccionEnvio</strong>
+                                </p>
+                                <p class="inner-sub-text">Coordinaremos la entrega a tu domicilio.</p>
+                            }
+
+                            <div class="inner-contact-line">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                                </svg>
+                                <span>Teléfono de contacto: <strong>@_pedido.TelefonoContacto</strong></span>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- 2. MÉTODO Y ESTADO DE PAGO -->
+                    <section class="card-detalle-box" aria-label="Método y estado de pago">
+                        <div class="box-header-row justify-content-between">
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="box-icon-circle icon-tertiary" aria-hidden="true">
+                                    @if (_pedido.MetodoPago == MetodoPago.Transferencia)
+                                    {
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <line x1="3" y1="21" x2="21" y2="21"></line>
+                                            <line x1="3" y1="10" x2="21" y2="10"></line>
+                                            <polyline points="5 6 12 3 19 6"></polyline>
+                                            <line x1="4" y1="10" x2="4" y2="21"></line>
+                                            <line x1="20" y1="10" x2="20" y2="21"></line>
+                                        </svg>
+                                    }
+                                    else
+                                    {
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <rect x="2" y="6" width="20" height="12" rx="2"></rect>
+                                            <circle cx="12" cy="12" r="2"></circle>
+                                            <path d="M6 12h.01M18 12h.01"></path>
+                                        </svg>
+                                    }
+                                </div>
+                                <div>
+                                    <span class="box-caption">Método de pago</span>
+                                    <h2 class="box-title font-serif">@ObtenerNombreMetodoPago(_pedido.MetodoPago)</h2>
+                                </div>
+                            </div>
+
+                            <span class="chip-badge @ObtenerClaseChipPago(_pedido.EstadoPago)">
+                                @if (_pedido.EstadoPago == EstadoPago.Pagado)
+                                {
+                                    <span>Pago confirmado</span>
+                                }
+                                else
+                                {
+                                    <span>Pago pendiente</span>
+                                }
+                            </span>
+                        </div>
+
+                        @if (_pedido.MetodoPago == MetodoPago.Transferencia && _pedido.EstadoPago == EstadoPago.Pendiente)
+                        {
+                            <div class="box-inner-highlight d-flex align-items-center justify-content-between gap-2 mt-2">
+                                <div class="min-w-0">
+                                    <span class="inner-caption">Alias para transferir</span>
+                                    <strong class="inner-alias-text">@(!string.IsNullOrWhiteSpace(_tiendaInfo?.AliasTransferencia) ? _tiendaInfo.AliasTransferencia : "USADITOSHERNANDO")</strong>
+                                    @if (!string.IsNullOrWhiteSpace(_tiendaInfo?.TitularTransferencia))
+                                    {
+                                        <span class="inner-titular-text d-block">Titular: @_tiendaInfo.TitularTransferencia</span>
+                                    }
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-primary shrink-0" @onclick="CopiarAliasAsync">
+                                    @if (_aliasCopiado)
+                                    {
+                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                            <polyline points="20 6 9 17 4 12"></polyline>
+                                        </svg>
+                                        <span>¡Copiado!</span>
+                                    }
+                                    else
+                                    {
+                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                        </svg>
+                                        <span>Copiar alias</span>
+                                    }
+                                </button>
+                            </div>
+                        }
+
+                        @if (_pedido.FechaPago.HasValue)
+                        {
+                            <div class="inner-contact-line mt-2">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                                <span>Registrado el: <strong>@FormatearFechaCompleta(_pedido.FechaPago.Value)</strong></span>
+                            </div>
+                        }
+                    </section>
+
+                    <!-- 3. NOTA PARA EL LOCAL (SI EXISTE) -->
+                    @if (!string.IsNullOrWhiteSpace(_pedido.NotaCliente))
+                    {
+                        <section class="card-detalle-box" aria-label="Nota para el local">
+                            <div class="box-header-row">
+                                <div class="box-icon-circle" aria-hidden="true">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                        <polyline points="14 2 14 8 20 8"></polyline>
+                                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                                        <polyline points="10 9 9 9 8 9"></polyline>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <span class="box-caption">Aclaración</span>
+                                    <h2 class="box-title font-serif">Nota para el local</h2>
+                                </div>
+                            </div>
+
+                            <p class="nota-cliente-text">
+                                “@_pedido.NotaCliente”
+                            </p>
+                        </section>
+                    }
+
+                    <!-- 4. CANCELACIÓN DE PEDIDO -->
+                    <section class="card-detalle-box card-cancelacion-box" aria-label="Gestión de cancelación">
+                        @if (_puedeCancelar)
+                        {
+                            @if (!_mostrarConfirmacionCancelacion)
+                            {
+                                <button type="button"
+                                        class="btn-cancelar-pedido"
+                                        @onclick="() => _mostrarConfirmacionCancelacion = true">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <line x1="15" y1="9" x2="9" y2="15"></line>
+                                        <line x1="9" y1="9" x2="15" y2="15"></line>
+                                    </svg>
+                                    <span>Cancelar pedido</span>
+                                </button>
+                            }
+                            else
+                            {
+                                <!-- Cuadro de confirmación antes de cancelar -->
+                                <div class="cuadro-confirmacion-cancelar">
+                                    <div class="d-flex align-items-start gap-2">
+                                        <div class="confirm-warn-icon" aria-hidden="true">
+                                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                                                <line x1="12" y1="9" x2="12" y2="13"></line>
+                                                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                                            </svg>
+                                        </div>
+                                        <p class="confirm-text">
+                                            ¿Seguro que querés cancelar el <strong>Pedido #@_pedido.Id</strong>? Las prendas volverán al catálogo disponible.
+                                        </p>
+                                    </div>
+
+                                    <div class="confirm-actions-row">
+                                        <button type="button"
+                                                class="btn btn-danger btn-confirm-action"
+                                                disabled="@_cancelando"
+                                                @onclick="ConfirmarCancelacionAsync">
+                                            @if (_cancelando)
+                                            {
+                                                <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                                                <span>Cancelando...</span>
+                                            }
+                                            else
+                                            {
+                                                <span>Sí, cancelar pedido</span>
+                                            }
+                                        </button>
+                                        <button type="button"
+                                                class="btn btn-outline-secondary btn-abort-action"
+                                                disabled="@_cancelando"
+                                                @onclick="() => _mostrarConfirmacionCancelacion = false">
+                                            Volver
+                                        </button>
+                                    </div>
+                                </div>
+                            }
+                        }
+                        else if (_pedido.Estado != PedidoConstantes.EstadoCancelado)
+                        {
+                            <!-- Requisito: Si ya está pagado o en otro estado, mostrá en su lugar: -->
+                            <div class="nota-cancelacion-bloqueada">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="info-icon" aria-hidden="true">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <line x1="12" y1="16" x2="12" y2="12"></line>
+                                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                                </svg>
+                                <p class="mb-0">
+                                    Si necesitás cancelarlo, comunicate con el local.
+                                </p>
+                            </div>
+                        }
+                    </section>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
+
+    private PedidoDto? _pedido;
+    private TiendaInfoDto? _tiendaInfo;
+    private Dictionary<int, ProductoDto> _productosMap = new();
+
+    private int _clienteId;
+    private bool _cargando = true;
+    private bool _noEncontrado;
+    private bool _mostrarConfirmacionCancelacion;
+    private bool _cancelando;
+    private bool _aliasCopiado;
+
+    private string? _mensajeErrorCancelacion;
+    private string? _mensajeExitoCancelacion;
+
+    private readonly CultureInfo _culturaAr = new("es-AR");
+
+    private bool _puedeCancelar => _pedido is not null &&
+                                   _pedido.Estado == PedidoConstantes.EstadoConfirmado &&
+                                   _pedido.EstadoPago == EstadoPago.Pendiente;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AuthenticationStateTask is null)
+        {
+            Navigation.NavigateTo($"/login?returnUrl=/pedidos/{Id}", forceLoad: true);
+            return;
+        }
+
+        var authenticationState = await AuthenticationStateTask;
+        var idClaim = authenticationState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (!int.TryParse(idClaim, out var clienteId))
+        {
+            Navigation.NavigateTo($"/login?returnUrl=/pedidos/{Id}", forceLoad: true);
+            return;
+        }
+
+        _clienteId = clienteId;
+
+        try
+        {
+            _tiendaInfo = TiendaServicio.ObtenerInfo();
+            _pedido = await PedidoServicio.ObtenerPedidoAsync(_clienteId, Id);
+            await CargarProductosMapAsync();
+        }
+        catch (KeyNotFoundException)
+        {
+            _noEncontrado = true;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            _noEncontrado = true;
+        }
+        catch (Exception)
+        {
+            _noEncontrado = true;
+        }
+        finally
+        {
+            _cargando = false;
+        }
+    }
+
+    private async Task CargarProductosMapAsync()
+    {
+        try
+        {
+            var productos = await CatalogoServicio.ObtenerProductosAsync();
+            _productosMap = productos.ToDictionary(p => p.Id);
+        }
+        catch
+        {
+            // Continuar con los datos disponibles del pedido
+        }
+    }
+
+    private async Task RecargarPedidoAsync()
+    {
+        try
+        {
+            _pedido = await PedidoServicio.ObtenerPedidoAsync(_clienteId, Id);
+            _noEncontrado = false;
+        }
+        catch (Exception)
+        {
+            _noEncontrado = true;
+        }
+    }
+
+    private async Task ConfirmarCancelacionAsync()
+    {
+        if (!_puedeCancelar)
+            return;
+
+        try
+        {
+            _cancelando = true;
+            _mensajeErrorCancelacion = null;
+            _mensajeExitoCancelacion = null;
+
+            _pedido = await PedidoServicio.CancelarPedidoAsync(_clienteId, Id);
+            _mensajeExitoCancelacion = "Tu pedido fue cancelado con éxito y el stock de las prendas se devolvió al catálogo.";
+            _mostrarConfirmacionCancelacion = false;
+        }
+        catch (EstadoPedidoInvalidoException ex)
+        {
+            _mensajeErrorCancelacion = ex.Message;
+            _mostrarConfirmacionCancelacion = false;
+            await RecargarPedidoAsync();
+        }
+        catch (PedidoModificadoException ex)
+        {
+            _mensajeErrorCancelacion = ex.Message;
+            _mostrarConfirmacionCancelacion = false;
+            await RecargarPedidoAsync();
+        }
+        catch (Exception)
+        {
+            _mensajeErrorCancelacion = "No se pudo cancelar el pedido. Por favor, intentá nuevamente o comunicate con el local.";
+            _mostrarConfirmacionCancelacion = false;
+            await RecargarPedidoAsync();
+        }
+        finally
+        {
+            _cancelando = false;
+        }
+    }
+
+    private async Task CopiarAliasAsync()
+    {
+        var alias = !string.IsNullOrWhiteSpace(_tiendaInfo?.AliasTransferencia)
+            ? _tiendaInfo.AliasTransferencia
+            : "USADITOSHERNANDO";
+
+        try
+        {
+            await JS.InvokeVoidAsync("navigator.clipboard.writeText", alias);
+            _aliasCopiado = true;
+            StateHasChanged();
+            await Task.Delay(2500);
+            _aliasCopiado = false;
+            StateHasChanged();
+        }
+        catch
+        {
+            // Portapapeles no disponible en el cliente
+        }
+    }
+
+    private string FormatearFechaCompleta(DateTime fechaUtc)
+    {
+        var zonaId = !string.IsNullOrWhiteSpace(_tiendaInfo?.ZonaHoraria)
+            ? _tiendaInfo.ZonaHoraria
+            : FechaHelper.ZonaPorDefecto;
+
+        var fechaLocal = FechaHelper.UtcALocal(fechaUtc, zonaId);
+        return fechaLocal.ToString("d 'de' MMMM 'de' yyyy · HH:mm", _culturaAr) + " hs";
+    }
+
+    private static bool EsPasoAlcanzado(int paso, string estado)
+    {
+        return paso switch
+        {
+            1 => estado == PedidoConstantes.EstadoConfirmado || estado == PedidoConstantes.EstadoListoParaRetirar || estado == PedidoConstantes.EstadoEntregado,
+            2 => estado == PedidoConstantes.EstadoListoParaRetirar || estado == PedidoConstantes.EstadoEntregado,
+            3 => estado == PedidoConstantes.EstadoEntregado,
+            _ => false
+        };
+    }
+
+    private static string ObtenerTextoPasoActual(string estado)
+    {
+        return estado switch
+        {
+            PedidoConstantes.EstadoConfirmado => "Paso 1 de 3",
+            PedidoConstantes.EstadoListoParaRetirar => "Paso 2 de 3",
+            PedidoConstantes.EstadoEntregado => "Paso 3 de 3 · ¡Completado!",
+            _ => ""
+        };
+    }
+
+    private static string ObtenerNombreMetodoPago(MetodoPago metodo)
+    {
+        return metodo switch
+        {
+            MetodoPago.Transferencia => "Transferencia bancaria",
+            _ => "Efectivo (al retirar)"
+        };
+    }
+
+    private static string ObtenerClaseChipEstado(string estado)
+    {
+        return estado switch
+        {
+            PedidoConstantes.EstadoConfirmado => "chip-estado-confirmado",
+            PedidoConstantes.EstadoListoParaRetirar => "chip-estado-listo",
+            PedidoConstantes.EstadoEntregado => "chip-estado-entregado",
+            PedidoConstantes.EstadoCancelado => "chip-estado-cancelado",
+            _ => "chip-estado-confirmado"
+        };
+    }
+
+    private static string ObtenerClaseChipPago(EstadoPago estadoPago)
+    {
+        return estadoPago switch
+        {
+            EstadoPago.Pagado => "chip-pago-pagado",
+            _ => "chip-pago-pendiente"
+        };
+    }
+}
