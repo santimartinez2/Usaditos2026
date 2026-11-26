@@ -1,0 +1,951 @@
+@page "/checkout"
+@rendermode InteractiveServer
+@attribute [Authorize]
+@using System.Globalization
+@using System.Security.Claims
+@using Usaditos2026.Servicios.Interfaces
+@using Usaditos2026.Shared.Constantes
+@using Usaditos2026.Shared.DTOs
+@using Usaditos2026.Shared.Excepciones
+@inject ICarritoServicio CarritoServicio
+@inject IPedidoServicio PedidoServicio
+@inject ITiendaServicio TiendaServicio
+@inject ICatalogoServicio CatalogoServicio
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+<PageTitle>Confirmar pedido | Usaditos Hernando</PageTitle>
+
+<div class="checkout-page">
+    @if (!string.IsNullOrWhiteSpace(_mensajeAlerta))
+    {
+        <div class="alert @_claseAlerta alert-dismissible fade show d-flex align-items-center justify-content-between mb-4 shadow-sm" role="alert">
+            <div class="d-flex align-items-center gap-2">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="8" x2="12" y2="12"></line>
+                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+                <span>@_mensajeAlerta</span>
+            </div>
+            <button type="button" class="btn-close" aria-label="Cerrar aviso" @onclick="() => _mensajeAlerta = null"></button>
+        </div>
+    }
+
+    @if (_cargando)
+    {
+        <div class="checkout-loading" role="status" aria-live="polite">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Cargando datos para el pedido...</span>
+            </div>
+            <p class="checkout-loading-text mt-3">Preparando el resumen de tus prendas con amor...</p>
+        </div>
+    }
+    else if (_carrito is null || _carrito.Items.Count == 0)
+    {
+        <!-- Estado Vacío si el carrito no tiene prendas -->
+        <section class="card-vacio-wrapper" aria-label="Carrito sin prendas">
+            <div class="card-vacio-box">
+                <div class="vacio-glow-orange" aria-hidden="true"></div>
+                <div class="vacio-glow-yellow" aria-hidden="true"></div>
+
+                <div class="vacio-icon-circle" aria-hidden="true">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+                        <line x1="3" y1="6" x2="21" y2="6"></line>
+                        <path d="M16 10a4 4 0 0 1-8 0"></path>
+                    </svg>
+                </div>
+
+                <h1 class="vacio-titulo font-serif">Tu carrito está vacío</h1>
+                <p class="vacio-descripcion">
+                    No tenés prendas pendientes para confirmar el pedido. Mirá las novedades que llegaron esta semana a la tienda.
+                </p>
+
+                <a href="/catalogo" class="btn btn-primary btn-vacio-catalogo">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon>
+                    </svg>
+                    <span>Ir al catálogo</span>
+                </a>
+            </div>
+        </section>
+    }
+    else
+    {
+        <!-- Navegación superior / Retorno al carrito -->
+        <div class="checkout-top-nav">
+            <a href="/carrito" class="link-volver-carrito">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                    <polyline points="12 19 5 12 12 5"></polyline>
+                </svg>
+                <span>Volver al carrito</span>
+            </a>
+            <div class="checkout-badge-confianza d-none d-sm-flex">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+                <span>Compra 100% segura · Prendas verificadas</span>
+            </div>
+        </div>
+
+        <!-- Encabezado de página -->
+        <div class="checkout-header-banner">
+            <div class="checkout-header-info">
+                <div class="paso-indicador-badge">
+                    <span class="pulsing-dot" aria-hidden="true"></span>
+                    <span>Paso final · Confirmación rápida</span>
+                </div>
+                <h1 class="checkout-titulo font-serif">Confirmar pedido</h1>
+                <p class="checkout-subtitulo">Revisá los detalles de tus prendas y elegí cómo retirarlas o recibirlas.</p>
+            </div>
+        </div>
+
+        <!-- RESUMEN COLAPSABLE PARA CELULAR (< 992px) -->
+        <aside class="mobile-summary-accordion d-lg-none" aria-label="Resumen de compra en dispositivo móvil">
+            <button type="button"
+                    class="mobile-summary-toggle @(_resumenMovilAbierto ? "open" : "")"
+                    @onclick="ToggleResumenMovil"
+                    aria-expanded="@(_resumenMovilAbierto ? "true" : "false")"
+                    aria-controls="mobile-summary-content">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="summary-icon-mini" aria-hidden="true">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+                            <line x1="3" y1="6" x2="21" y2="6"></line>
+                            <path d="M16 10a4 4 0 0 1-8 0"></path>
+                        </svg>
+                    </div>
+                    <span class="mobile-summary-title">
+                        @(_resumenMovilAbierto ? "Ocultar resumen" : "Ver resumen del pedido")
+                        <span class="badge-cantidad-prendas">(@CantidadTotalPrendas @(CantidadTotalPrendas == 1 ? "prenda" : "prendas"))</span>
+                    </span>
+                    <svg class="chevron-toggle" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                </div>
+                <div class="mobile-summary-price font-serif">
+                    @_carrito.Total.ToString("C", _culturaAr)
+                </div>
+            </button>
+
+            @if (_resumenMovilAbierto)
+            {
+                <div id="mobile-summary-content" class="mobile-summary-dropdown">
+                    <div class="resumen-items-list-compact">
+                        @foreach (var item in _carrito.Items)
+                        {
+                            var prod = _productosMap.GetValueOrDefault(item.ProductoId);
+                            var tieneImagen = !string.IsNullOrWhiteSpace(prod?.ImagenUrl);
+                            var talleTexto = !string.IsNullOrWhiteSpace(prod?.Talle) ? prod.Talle : "Talle único";
+                            var estadoTexto = !string.IsNullOrWhiteSpace(prod?.EstadoTexto) ? prod.EstadoTexto : "Muy buen estado";
+
+                            <div class="resumen-item-compact">
+                                <div class="item-thumb-compact">
+                                    @if (tieneImagen)
+                                    {
+                                        <img src="@prod!.ImagenUrl" alt="@item.NombreProducto" />
+                                    }
+                                    else
+                                    {
+                                        <div class="item-thumb-placeholder">
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M2.5 16.5 12 9l9.5 7.5a1.5 1.5 0 0 1-.9 2.5H3.4a1.5 1.5 0 0 1-.9-2.5z" />
+                                            </svg>
+                                        </div>
+                                    }
+                                </div>
+                                <div class="item-info-compact">
+                                    <h4 class="item-nombre-compact">@item.NombreProducto</h4>
+                                    <div class="item-meta-compact">
+                                        <span>Talle @talleTexto</span>
+                                        <span class="meta-dot">·</span>
+                                        <span class="chip-estado-compact">@estadoTexto</span>
+                                    </div>
+                                    <div class="item-subtotal-compact">
+                                        <span class="item-unitario">@item.Cantidad × @item.PrecioUnitario.ToString("C", _culturaAr)</span>
+                                        <span class="item-total-linea">@item.Subtotal.ToString("C", _culturaAr)</span>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+
+                    <div class="desglose-lineas-compact">
+                        <div class="desglose-fila">
+                            <span>Subtotal (@CantidadTotalPrendas @(CantidadTotalPrendas == 1 ? "artículo" : "artículos"))</span>
+                            <span class="desglose-valor">@_carrito.Total.ToString("C", _culturaAr)</span>
+                        </div>
+                        <div class="desglose-fila">
+                            <span>
+                                Entrega
+                                <strong class="ms-1 font-sans">@(_request.TipoEntrega == TipoEntrega.Retiro ? "(Retiro en local)" : "(A domicilio)")</strong>
+                            </span>
+                            <span class="desglose-valor @(_request.TipoEntrega == TipoEntrega.Retiro ? "text-primary" : "")">
+                                @(_request.TipoEntrega == TipoEntrega.Retiro ? "Gratis" : "A coordinar")
+                            </span>
+                        </div>
+                        <div class="desglose-fila total-row">
+                            <span class="fw-bold">Total final</span>
+                            <span class="total-monto-compact font-serif">@_carrito.Total.ToString("C", _culturaAr)</span>
+                        </div>
+                    </div>
+                </div>
+            }
+        </aside>
+
+        <!-- LAYOUT DE 2 COLUMNAS (Formulario a la izquierda, Resumen a la derecha) -->
+        <div class="checkout-grid">
+            <!-- COLUMNA IZQUIERDA: Formulario de Checkout (7 cols) -->
+            <section class="checkout-form-col" aria-label="Formulario de contacto, entrega y pago">
+                <form @onsubmit="ConfirmarPedidoSubmitAsync" novalidate>
+                    <!-- 1. Teléfono de contacto / WhatsApp -->
+                    <div class="checkout-card mb-4">
+                        <div class="card-header-clean">
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="step-icon-wrap" aria-hidden="true">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                                    </svg>
+                                </div>
+                                <h2 class="card-section-title">Teléfono de contacto / WhatsApp</h2>
+                                <span class="text-danger fw-bold" aria-hidden="true">*</span>
+                            </div>
+                            <span class="badge-obligatorio">Obligatorio</span>
+                        </div>
+
+                        <div class="card-body-clean">
+                            <div class="input-phone-group @(!string.IsNullOrWhiteSpace(_errorTelefono) ? "is-invalid-border" : "")">
+                                <span class="phone-prefix" aria-hidden="true">
+                                    <span class="flag-icon">🇦🇷</span>
+                                    <span>+54 9</span>
+                                </span>
+                                <input type="tel"
+                                       id="telefono-input"
+                                       class="form-control phone-input @(!string.IsNullOrWhiteSpace(_errorTelefono) ? "is-invalid" : "")"
+                                       placeholder="353 4123456"
+                                       aria-describedby="telefono-ayuda"
+                                       aria-required="true"
+                                       @bind="_request.TelefonoContacto"
+                                       @bind:event="oninput"
+                                       @onchange="() => _errorTelefono = null" />
+                            </div>
+
+                            <p id="telefono-ayuda" class="field-help-text">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <line x1="12" y1="16" x2="12" y2="12"></line>
+                                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                                </svg>
+                                <span>Lo usamos solo para avisarte sobre tu pedido</span>
+                            </p>
+
+                            @if (!string.IsNullOrWhiteSpace(_errorTelefono))
+                            {
+                                <div class="field-error-message" role="alert">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                                    </svg>
+                                    <span>@_errorTelefono</span>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- 2. ¿Cómo lo recibís? -->
+                    <div class="checkout-card mb-4">
+                        <div class="card-header-clean">
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="step-icon-wrap" aria-hidden="true">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <rect x="1" y="3" width="15" height="13"></rect>
+                                        <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon>
+                                        <circle cx="5.5" cy="18.5" r="2.5"></circle>
+                                        <circle cx="18.5" cy="18.5" r="2.5"></circle>
+                                    </svg>
+                                </div>
+                                <h2 class="card-section-title">¿Cómo lo recibís?</h2>
+                            </div>
+                            <span class="card-section-hint">Seleccioná una opción</span>
+                        </div>
+
+                        <div class="card-body-clean">
+                            <div class="options-grid" role="radiogroup" aria-label="Modalidad de entrega">
+                                <!-- Tarjeta: Retiro en el local (Por defecto) -->
+                                <button type="button"
+                                        class="option-card @(_request.TipoEntrega == TipoEntrega.Retiro ? "selected" : "")"
+                                        @onclick="() => SeleccionarTipoEntrega(TipoEntrega.Retiro)"
+                                        role="radio"
+                                        aria-checked="@(_request.TipoEntrega == TipoEntrega.Retiro ? "true" : "false")">
+                                    <div class="option-card-top">
+                                        <div class="option-icon-avatar primary">
+                                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                                                <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                                            </svg>
+                                        </div>
+                                        <span class="badge-tag gratis">Gratis</span>
+                                    </div>
+                                    <div class="option-card-content">
+                                        <div class="d-flex align-items-center justify-content-between mb-1">
+                                            <span class="option-title">Retiro en el local</span>
+                                            <div class="option-radio-check" aria-hidden="true">
+                                                @if (_request.TipoEntrega == TipoEntrega.Retiro)
+                                                {
+                                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-primary">
+                                                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                                        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                                                    </svg>
+                                                }
+                                                else
+                                                {
+                                                    <div class="radio-unchecked-circle"></div>
+                                                }
+                                            </div>
+                                        </div>
+                                        <p class="option-description mb-1">
+                                            <strong>@(!string.IsNullOrWhiteSpace(_tiendaInfo?.Direccion) ? _tiendaInfo.Direccion : "Av. Siempre Viva 742, Hernando, Córdoba.")</strong>
+                                        </p>
+                                        <span class="option-subinfo">
+                                            @(!string.IsNullOrWhiteSpace(_tiendaInfo?.Horario) ? _tiendaInfo.Horario : "Lunes a Viernes 9:00 a 18:00 · Sábados 10:00 a 13:00")
+                                        </span>
+                                    </div>
+                                </button>
+
+                                <!-- Tarjeta: Envío a domicilio -->
+                                <button type="button"
+                                        class="option-card @(_request.TipoEntrega == TipoEntrega.Envio ? "selected" : "")"
+                                        @onclick="() => SeleccionarTipoEntrega(TipoEntrega.Envio)"
+                                        role="radio"
+                                        aria-checked="@(_request.TipoEntrega == TipoEntrega.Envio ? "true" : "false")">
+                                    <div class="option-card-top">
+                                        <div class="option-icon-avatar orange">
+                                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                                <rect x="1" y="3" width="15" height="13"></rect>
+                                                <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon>
+                                                <circle cx="5.5" cy="18.5" r="2.5"></circle>
+                                                <circle cx="18.5" cy="18.5" r="2.5"></circle>
+                                            </svg>
+                                        </div>
+                                        <span class="badge-tag neutro">A coordinar</span>
+                                    </div>
+                                    <div class="option-card-content">
+                                        <div class="d-flex align-items-center justify-content-between mb-1">
+                                            <span class="option-title">Envío a domicilio</span>
+                                            <div class="option-radio-check" aria-hidden="true">
+                                                @if (_request.TipoEntrega == TipoEntrega.Envio)
+                                                {
+                                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-primary">
+                                                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                                        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                                                    </svg>
+                                                }
+                                                else
+                                                {
+                                                    <div class="radio-unchecked-circle"></div>
+                                                }
+                                            </div>
+                                        </div>
+                                        <p class="option-description mb-1">
+                                            Cadetería en Hernando o encomienda a toda la provincia.
+                                        </p>
+                                        <span class="option-subinfo">El costo se abona al recibir o se suma por transferencia</span>
+                                    </div>
+                                </button>
+                            </div>
+
+                            <!-- Panel Desplegable Condicional: Dirección de Envío -->
+                            @if (_request.TipoEntrega == TipoEntrega.Envio)
+                            {
+                                <div class="conditional-panel mt-3">
+                                    <div class="d-flex align-items-center justify-content-between mb-2">
+                                        <label for="direccion-input" class="form-label-panel">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                                                <circle cx="12" cy="10" r="3"></circle>
+                                            </svg>
+                                            <span>Dirección de envío</span>
+                                            <span class="text-danger" aria-hidden="true">*</span>
+                                        </label>
+                                        <span class="text-muted small">Obligatorio para envíos</span>
+                                    </div>
+
+                                    <textarea id="direccion-input"
+                                              class="form-control @(!string.IsNullOrWhiteSpace(_errorDireccion) ? "is-invalid" : "")"
+                                              placeholder="Calle, número, piso/depto, barrio o referencias (ej. Belgrano 345, B° Centro, portón blanco)"
+                                              rows="2"
+                                              aria-required="true"
+                                              @bind="_request.DireccionEnvio"
+                                              @bind:event="oninput"
+                                              @onchange="() => _errorDireccion = null"></textarea>
+
+                                    @if (!string.IsNullOrWhiteSpace(_errorDireccion))
+                                    {
+                                        <div class="field-error-message mt-2" role="alert">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                                <circle cx="12" cy="12" r="10"></circle>
+                                                <line x1="12" y1="8" x2="12" y2="12"></line>
+                                                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                                            </svg>
+                                            <span>@_errorDireccion</span>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- 3. ¿Cómo pagás? -->
+                    <div class="checkout-card mb-4">
+                        <div class="card-header-clean">
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="step-icon-wrap" aria-hidden="true">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <rect x="2" y="5" width="20" height="14" rx="2"></rect>
+                                        <line x1="2" y1="10" x2="22" y2="10"></line>
+                                    </svg>
+                                </div>
+                                <h2 class="card-section-title">¿Cómo pagás?</h2>
+                            </div>
+                            <span class="card-section-hint">Coordinación directa</span>
+                        </div>
+
+                        <div class="card-body-clean">
+                            <div class="options-grid" role="radiogroup" aria-label="Método de pago">
+                                <!-- Tarjeta Pago: Efectivo -->
+                                <button type="button"
+                                        class="option-card @(_request.MetodoPago == MetodoPago.Efectivo ? "selected" : "")"
+                                        @onclick="() => SeleccionarMetodoPago(MetodoPago.Efectivo)"
+                                        role="radio"
+                                        aria-checked="@(_request.MetodoPago == MetodoPago.Efectivo ? "true" : "false")">
+                                    <div class="option-card-top">
+                                        <div class="option-icon-avatar orange">
+                                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                                <line x1="12" y1="1" x2="12" y2="23"></line>
+                                                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                                            </svg>
+                                        </div>
+                                        <span class="badge-tag promo">10% OFF al retirar</span>
+                                    </div>
+                                    <div class="option-card-content">
+                                        <div class="d-flex align-items-center justify-content-between mb-1">
+                                            <span class="option-title">Efectivo</span>
+                                            <div class="option-radio-check" aria-hidden="true">
+                                                @if (_request.MetodoPago == MetodoPago.Efectivo)
+                                                {
+                                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-primary">
+                                                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                                        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                                                    </svg>
+                                                }
+                                                else
+                                                {
+                                                    <div class="radio-unchecked-circle"></div>
+                                                }
+                                            </div>
+                                        </div>
+                                        <p class="option-description mb-0">
+                                            Abonás en mano al retirar en el local de Hernando.
+                                        </p>
+                                    </div>
+                                </button>
+
+                                <!-- Tarjeta Pago: Transferencia -->
+                                <button type="button"
+                                        class="option-card @(_request.MetodoPago == MetodoPago.Transferencia ? "selected" : "")"
+                                        @onclick="() => SeleccionarMetodoPago(MetodoPago.Transferencia)"
+                                        role="radio"
+                                        aria-checked="@(_request.MetodoPago == MetodoPago.Transferencia ? "true" : "false")">
+                                    <div class="option-card-top">
+                                        <div class="option-icon-avatar primary">
+                                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                                <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                                                <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+                                            </svg>
+                                        </div>
+                                        <span class="badge-tag transferencia">Mercado Pago / Bco</span>
+                                    </div>
+                                    <div class="option-card-content">
+                                        <div class="d-flex align-items-center justify-content-between mb-1">
+                                            <span class="option-title">Transferencia</span>
+                                            <div class="option-radio-check" aria-hidden="true">
+                                                @if (_request.MetodoPago == MetodoPago.Transferencia)
+                                                {
+                                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-primary">
+                                                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                                        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                                                    </svg>
+                                                }
+                                                else
+                                                {
+                                                    <div class="radio-unchecked-circle"></div>
+                                                }
+                                            </div>
+                                        </div>
+                                        <p class="option-description mb-0">
+                                            Enviás el comprobante por WhatsApp para confirmar tu paquete.
+                                        </p>
+                                    </div>
+                                </button>
+                            </div>
+
+                            <!-- Panel Destacado: Datos de Transferencia (cuando elige Transferencia) -->
+                            @if (_request.MetodoPago == MetodoPago.Transferencia)
+                            {
+                                <div class="transferencia-panel mt-3">
+                                    <div class="d-flex align-items-center justify-content-between mb-2">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary" aria-hidden="true">
+                                                <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+                                                <line x1="12" y1="8" x2="12" y2="16"></line>
+                                                <line x1="8" y1="12" x2="16" y2="12"></line>
+                                            </svg>
+                                            <span class="panel-box-title">Datos de la cuenta para transferir</span>
+                                        </div>
+                                        <span class="badge-cbu-cvu">CBU / CVU</span>
+                                    </div>
+
+                                    <div class="transfer-data-box">
+                                        <div class="transfer-info">
+                                            <div class="d-flex align-items-baseline gap-2 mb-1">
+                                                <span class="label-alias">Alias:</span>
+                                                <span class="valor-alias font-mono">@(!string.IsNullOrWhiteSpace(_tiendaInfo?.AliasTransferencia) ? _tiendaInfo.AliasTransferencia : "USADITOSHERNANDO")</span>
+                                            </div>
+                                            <div class="titular-text">
+                                                Titular: <strong>@(!string.IsNullOrWhiteSpace(_tiendaInfo?.TitularTransferencia) ? _tiendaInfo.TitularTransferencia : "Usaditos Hernando")</strong>
+                                            </div>
+                                        </div>
+                                        <button type="button"
+                                                class="btn-copy-alias @(_aliasCopiado ? "copied" : "")"
+                                                @onclick="CopiarAliasAsync"
+                                                aria-label="Copiar alias bancario al portapapeles">
+                                            @if (_aliasCopiado)
+                                            {
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                                </svg>
+                                                <span>¡Copiado!</span>
+                                            }
+                                            else
+                                            {
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                                </svg>
+                                                <span>Copiar Alias</span>
+                                            }
+                                        </button>
+                                    </div>
+                                    <p class="transfer-note mb-0">
+                                        * Podés transferir desde cualquier banco o billetera virtual (Mercado Pago, Modo, Santander, etc.).
+                                    </p>
+                                </div>
+                            }
+                            else if (_request.MetodoPago == MetodoPago.Efectivo)
+                            {
+                                <div class="efectivo-panel mt-3">
+                                    <div class="d-flex align-items-center gap-2 mb-1 text-secondary">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                                        </svg>
+                                        <span class="panel-box-title">¡Beneficio de ahorro en mostrador!</span>
+                                    </div>
+                                    <p class="efectivo-note mb-0">
+                                        Al retirar y pagar en efectivo en el local de Hernando, se te aplica un <strong>10% de descuento directo</strong> sobre el total de tus prendas.
+                                    </p>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- 4. Nota opcional para el local -->
+                    <div class="checkout-card mb-4">
+                        <div class="card-header-clean">
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="step-icon-wrap" aria-hidden="true">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                    </svg>
+                                </div>
+                                <h2 class="card-section-title">Nota para el local</h2>
+                                <span class="text-muted small fw-normal">(opcional)</span>
+                            </div>
+                            <span class="card-section-hint">Máx. 500 caracteres</span>
+                        </div>
+
+                        <div class="card-body-clean">
+                            <textarea id="nota-input"
+                                      class="form-control"
+                                      placeholder="¿Alguna indicación sobre el horario, quién retira o el paquete? (Ej: 'Lo pasa a buscar mi mamá Laura por la tarde')"
+                                      rows="3"
+                                      maxlength="500"
+                                      @bind="_request.NotaCliente"
+                                      @bind:event="oninput"></textarea>
+                            <div class="text-end text-muted small mt-1">
+                                @((_request.NotaCliente?.Length ?? 0)) / 500
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </section>
+
+            <!-- COLUMNA DERECHA: Resumen de Compra Flotante (5 cols) -->
+            <aside class="checkout-summary-col" aria-label="Resumen de tu compra">
+                <div class="summary-sticky-card">
+                    <div class="summary-card-header">
+                        <div>
+                            <h2 class="summary-card-title font-serif">Resumen de tu pedido</h2>
+                            <span class="summary-items-count">@CantidadTotalPrendas @(CantidadTotalPrendas == 1 ? "prenda seleccionada" : "prendas seleccionadas")</span>
+                        </div>
+                        <a href="/carrito" class="btn-edit-bag" title="Modificar cantidades o prendas">
+                            <span>Editar bolsa</span>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                            </svg>
+                        </a>
+                    </div>
+
+                    <!-- Lista de Prendas en el Resumen -->
+                    <div class="summary-items-scroll">
+                        @foreach (var item in _carrito.Items)
+                        {
+                            var prod = _productosMap.GetValueOrDefault(item.ProductoId);
+                            var tieneImagen = !string.IsNullOrWhiteSpace(prod?.ImagenUrl);
+                            var talleTexto = !string.IsNullOrWhiteSpace(prod?.Talle) ? prod.Talle : "Talle único";
+                            var estadoTexto = !string.IsNullOrWhiteSpace(prod?.EstadoTexto) ? prod.EstadoTexto : "Muy buen estado";
+
+                            <article class="summary-item-card">
+                                <div class="summary-item-img-wrap">
+                                    @if (tieneImagen)
+                                    {
+                                        <img src="@prod!.ImagenUrl" alt="@item.NombreProducto" class="summary-item-img" />
+                                    }
+                                    else
+                                    {
+                                        <div class="summary-item-placeholder">
+                                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M2.5 16.5 12 9l9.5 7.5a1.5 1.5 0 0 1-.9 2.5H3.4a1.5 1.5 0 0 1-.9-2.5z" />
+                                            </svg>
+                                        </div>
+                                    }
+                                </div>
+                                <div class="summary-item-details">
+                                    <h3 class="summary-item-name" title="@item.NombreProducto">@item.NombreProducto</h3>
+                                    <div class="summary-item-meta">
+                                        <span class="meta-talle">Talle @talleTexto</span>
+                                        <span class="meta-dot">·</span>
+                                        <span class="meta-estado">@estadoTexto</span>
+                                    </div>
+                                    <div class="summary-item-price-row">
+                                        <span class="unit-price">@item.Cantidad × @item.PrecioUnitario.ToString("C", _culturaAr)</span>
+                                        <span class="subtotal-price">@item.Subtotal.ToString("C", _culturaAr)</span>
+                                    </div>
+                                </div>
+                            </article>
+                        }
+                    </div>
+
+                    <!-- Desglose de Totales -->
+                    <div class="summary-financial-box">
+                        <div class="financial-row">
+                            <span>Subtotal (@CantidadTotalPrendas @(CantidadTotalPrendas == 1 ? "artículo" : "artículos"))</span>
+                            <span class="financial-value">@_carrito.Total.ToString("C", _culturaAr)</span>
+                        </div>
+                        <div class="financial-row">
+                            <div class="d-flex align-items-center gap-1">
+                                <span>Entrega</span>
+                                <span class="financial-subtext">@(_request.TipoEntrega == TipoEntrega.Retiro ? "(Retiro en local)" : "(A domicilio)")</span>
+                            </div>
+                            <span class="financial-value @(_request.TipoEntrega == TipoEntrega.Retiro ? "text-primary fw-bold" : "")">
+                                @(_request.TipoEntrega == TipoEntrega.Retiro ? "Gratis" : "A coordinar")
+                            </span>
+                        </div>
+                        <div class="financial-row circular-savings">
+                            <span class="d-flex align-items-center gap-1">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary" aria-hidden="true">
+                                    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                                </svg>
+                                <span>Ahorro circular</span>
+                            </span>
+                            <span class="badge-circular-savings">~ 65% vs. nuevo</span>
+                        </div>
+
+                        <div class="financial-total-line">
+                            <div>
+                                <span class="financial-total-label">Total final</span>
+                                <span class="financial-total-currency">Precios finales en ARS ($)</span>
+                            </div>
+                            <div class="financial-total-amount font-serif">
+                                @_carrito.Total.ToString("C", _culturaAr)
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Botón Principal "Confirmar pedido" -->
+                    <div class="summary-cta-section">
+                        <button type="button"
+                                class="btn btn-primary btn-confirmar-pedido w-100"
+                                @onclick="ConfirmarPedidoSubmitAsync"
+                                disabled="@_procesando">
+                            @if (_procesando)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                <span>Confirmando tu pedido...</span>
+                            }
+                            else
+                            {
+                                <span>Confirmar pedido</span>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                                </svg>
+                            }
+                        </button>
+
+                        <div class="summary-tranquilidad-box text-center">
+                            <p class="tranquilidad-text mb-0">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary" aria-hidden="true">
+                                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                                </svg>
+                                <strong>No se cobra nada online.</strong> El pago se coordina con el local.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Microgarantías de boutique sustentable -->
+                    <div class="summary-guarantees-grid">
+                        <div class="guarantee-chip">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary" aria-hidden="true">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <polyline points="12 6 12 12 16 14"></polyline>
+                            </svg>
+                            <span>Moda sin desperdicio</span>
+                        </div>
+                        <div class="guarantee-chip">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary" aria-hidden="true">
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                            </svg>
+                            <span>Sanitizado artesanal</span>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    }
+</div>
+
+@code {
+    private CarritoDto? _carrito;
+    private Dictionary<int, ProductoDto> _productosMap = new();
+    private TiendaInfoDto? _tiendaInfo;
+    private int? _clienteId;
+    private bool _cargando = true;
+    private bool _procesando;
+    private bool _resumenMovilAbierto;
+    private bool _aliasCopiado;
+
+    private string? _mensajeAlerta;
+    private string _claseAlerta = "alert-warning";
+
+    private string? _errorTelefono;
+    private string? _errorDireccion;
+
+    private readonly CultureInfo _culturaAr = new("es-AR");
+
+    private ConfirmarPedidoRequest _request = new()
+    {
+        TipoEntrega = TipoEntrega.Retiro,
+        MetodoPago = MetodoPago.Transferencia
+    };
+
+    private int CantidadTotalPrendas => _carrito?.Items.Sum(i => i.Cantidad) ?? 0;
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AuthenticationStateTask is null)
+        {
+            Navigation.NavigateTo("/login?returnUrl=/checkout", forceLoad: true);
+            return;
+        }
+
+        var authenticationState = await AuthenticationStateTask;
+        var idClaim = authenticationState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (!int.TryParse(idClaim, out var clienteId))
+        {
+            Navigation.NavigateTo("/login?returnUrl=/checkout", forceLoad: true);
+            return;
+        }
+
+        _clienteId = clienteId;
+
+        try
+        {
+            _tiendaInfo = TiendaServicio.ObtenerInfo();
+            _carrito = await CarritoServicio.ObtenerCarritoAsync(clienteId);
+            await CargarProductosInfoAsync();
+        }
+        catch (Exception)
+        {
+            _mensajeAlerta = "No se pudieron cargar los datos del pedido. Por favor, intentá recargar la página.";
+            _claseAlerta = "alert-danger";
+        }
+        finally
+        {
+            _cargando = false;
+        }
+    }
+
+    private async Task CargarProductosInfoAsync()
+    {
+        try
+        {
+            var productos = await CatalogoServicio.ObtenerProductosAsync();
+            _productosMap = productos.ToDictionary(p => p.Id);
+        }
+        catch
+        {
+            // Continuar operando normalmente si la consulta complementaria falla
+        }
+    }
+
+    private void SeleccionarTipoEntrega(TipoEntrega tipo)
+    {
+        _request.TipoEntrega = tipo;
+        _errorDireccion = null;
+    }
+
+    private void SeleccionarMetodoPago(MetodoPago metodo)
+    {
+        _request.MetodoPago = metodo;
+    }
+
+    private void ToggleResumenMovil()
+    {
+        _resumenMovilAbierto = !_resumenMovilAbierto;
+    }
+
+    private async Task CopiarAliasAsync()
+    {
+        var alias = !string.IsNullOrWhiteSpace(_tiendaInfo?.AliasTransferencia)
+            ? _tiendaInfo.AliasTransferencia
+            : "USADITOSHERNANDO";
+
+        try
+        {
+            await JS.InvokeVoidAsync("navigator.clipboard.writeText", alias);
+            _aliasCopiado = true;
+            StateHasChanged();
+            await Task.Delay(2500);
+            _aliasCopiado = false;
+            StateHasChanged();
+        }
+        catch
+        {
+            // Si el portapapeles no está disponible en el navegador, no romper el flujo
+        }
+    }
+
+    private async Task ConfirmarPedidoSubmitAsync()
+    {
+        if (_clienteId is null)
+        {
+            Navigation.NavigateTo("/login?returnUrl=/checkout", forceLoad: true);
+            return;
+        }
+
+        _errorTelefono = null;
+        _errorDireccion = null;
+        _mensajeAlerta = null;
+
+        // Validaciones del cliente
+        var telefono = _request.TelefonoContacto?.Trim() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(telefono))
+        {
+            _errorTelefono = "El teléfono de contacto es obligatorio.";
+        }
+        else if (telefono.Count(char.IsDigit) < 6)
+        {
+            _errorTelefono = "El teléfono debe tener al menos 6 dígitos.";
+        }
+        else if (telefono.Any(c => !(char.IsDigit(c) || c == ' ' || c == '+' || c == '-' || c == '(' || c == ')')))
+        {
+            _errorTelefono = "El teléfono solo puede tener dígitos, espacios, +, - y paréntesis.";
+        }
+
+        if (_request.TipoEntrega == TipoEntrega.Envio && string.IsNullOrWhiteSpace(_request.DireccionEnvio))
+        {
+            _errorDireccion = "La dirección de envío es obligatoria cuando elegís entrega a domicilio.";
+        }
+
+        if (!string.IsNullOrWhiteSpace(_errorTelefono) || !string.IsNullOrWhiteSpace(_errorDireccion))
+        {
+            return;
+        }
+
+        _procesando = true;
+
+        try
+        {
+            var pedidoConfirmado = await PedidoServicio.ConfirmarPedidoAsync(_clienteId.Value, _request);
+            Navigation.NavigateTo($"/pedidos/{pedidoConfirmado.Id}/confirmado");
+        }
+        catch (ArgumentException ex)
+        {
+            var msg = ex.Message;
+            if (msg.Contains("teléfono", StringComparison.OrdinalIgnoreCase))
+            {
+                _errorTelefono = msg;
+            }
+            else if (msg.Contains("dirección", StringComparison.OrdinalIgnoreCase))
+            {
+                _errorDireccion = msg;
+            }
+            else
+            {
+                _mensajeAlerta = msg;
+                _claseAlerta = "alert-warning";
+            }
+        }
+        catch (StockInsuficienteException ex)
+        {
+            _mensajeAlerta = ex.Message;
+            _claseAlerta = "alert-danger";
+            try
+            {
+                _carrito = await CarritoServicio.ObtenerCarritoAsync(_clienteId.Value);
+            }
+            catch { }
+        }
+        catch (CarritoVacioException ex)
+        {
+            _mensajeAlerta = ex.Message;
+            _claseAlerta = "alert-warning";
+            try
+            {
+                _carrito = await CarritoServicio.ObtenerCarritoAsync(_clienteId.Value);
+            }
+            catch { }
+        }
+        catch (Exception)
+        {
+            _mensajeAlerta = "Ocurrió un error inesperado al procesar el pedido. Por favor, intentá nuevamente.";
+            _claseAlerta = "alert-danger";
+        }
+        finally
+        {
+            _procesando = false;
+        }
+    }
+}
