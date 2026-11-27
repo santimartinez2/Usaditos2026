@@ -362,5 +362,15 @@ MigrationBackup/
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
 
-# Imágenes de productos subidas por los administradores
-**/App_Data/uploads/productos/
+# Imágenes y archivos subidos en tiempo de ejecución
+**/App_Data/uploads/
+**/App_Data/uploads/**
+
+# Configuraciones de producción y variables de entorno sensibles
+appsettings.Production.json
+appsettings.*.Production.json
+*.env
+.env
+.env.*
+.env.local
+.env.production

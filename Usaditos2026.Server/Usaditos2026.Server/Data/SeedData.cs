@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Usaditos2026.BD.Datos;
 using Usaditos2026.BD.Datos.Entity;
@@ -172,19 +173,30 @@ namespace Usaditos2026.Server.Data
             await context.SaveChangesAsync();
         }
 
-        public static async Task CrearAdminInicialAsync(
+        public static async Task InicializarAdminAsync(
             AppDbContext context,
             IConfiguration configuration,
+            IHostEnvironment? environment,
             ILogger logger)
         {
-            var email = configuration["AdminInicial:Email"];
-            var password = configuration["AdminInicial:Password"];
+            var email = configuration["AdminSeed:Email"];
+            var password = configuration["AdminSeed:Password"];
+
+            // Compatibilidad hacia atrás si se configuró bajo AdminInicial
+            if (string.IsNullOrWhiteSpace(email))
+                email = configuration["AdminInicial:Email"];
+            if (string.IsNullOrWhiteSpace(password))
+                password = configuration["AdminInicial:Password"];
 
             if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
+            {
+                if (environment?.IsProduction() == true)
+                {
+                    logger.LogWarning(
+                        "Configuración de Administrador inicial no detectada (AdminSeed:Email y/o AdminSeed:Password no definidos en variables de entorno). Se omite la creación del usuario admin en producción sin contraseñas por defecto.");
+                }
                 return;
-
-            if (await context.Clientes.AnyAsync(c => c.Rol == RolConstantes.Admin))
-                return;
+            }
 
             var emailNormalizado = email.Trim().ToLowerInvariant();
             var clienteExistente = await context.Clientes
@@ -192,8 +204,8 @@ namespace Usaditos2026.Server.Data
 
             if (clienteExistente is not null)
             {
-                logger.LogWarning(
-                    "No se creó el admin inicial: ya existe un cliente con el email {Email} y rol {Rol}. Revisá AdminInicial:Email.",
+                logger.LogInformation(
+                    "El usuario con email {Email} ya existe en el sistema (rol: {Rol}). Se omite la inicialización de administrador.",
                     emailNormalizado,
                     clienteExistente.Rol);
                 return;
@@ -212,6 +224,18 @@ namespace Usaditos2026.Server.Data
 
             context.Clientes.Add(admin);
             await context.SaveChangesAsync();
+
+            logger.LogInformation(
+                "Usuario administrador inicial ({Email}) creado exitosamente.",
+                emailNormalizado);
+        }
+
+        public static Task CrearAdminInicialAsync(
+            AppDbContext context,
+            IConfiguration configuration,
+            ILogger logger)
+        {
+            return InicializarAdminAsync(context, configuration, null, logger);
         }
     }
 }

@@ -485,6 +485,10 @@
                                         </div>
                                         <p class="option-description mb-0">
                                             Coordinamos con vos por el teléfono que dejaste.
+                                            @if (!string.IsNullOrWhiteSpace(_tiendaInfo?.WhatsApp))
+                                            {
+                                                <span>(WhatsApp: @_tiendaInfo.WhatsApp)</span>
+                                            }
                                         </p>
                                     </div>
                                 </button>
@@ -539,6 +543,10 @@
                                     </div>
                                     <p class="transfer-note mb-0">
                                         * Podés transferir desde cualquier banco o billetera virtual (Mercado Pago, Modo, Santander, etc.).
+                                        @if (!string.IsNullOrWhiteSpace(_tiendaInfo?.WhatsApp))
+                                        {
+                                            <span>Podés enviar el comprobante a nuestro WhatsApp: <strong>@_tiendaInfo.WhatsApp</strong>.</span>
+                                        }
                                     </p>
                                 </div>
                             }
