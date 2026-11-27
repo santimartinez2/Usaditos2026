@@ -1,0 +1,817 @@
+/* Contenedor general */
+.detalle-producto-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    width: 100%;
+}
+
+/* Alertas de acción */
+.detalle-alert {
+    border-radius: 12px;
+    font-size: 0.95rem;
+}
+
+/* Migas de pan (Breadcrumbs) */
+.detalle-breadcrumb-nav .breadcrumb {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+}
+
+.breadcrumb-link {
+    color: var(--text-muted);
+    text-decoration: none;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    transition: color 0.15s ease;
+}
+
+.breadcrumb-link:hover {
+    color: var(--brand-primary);
+    text-decoration: underline;
+}
+
+.breadcrumb-item.active {
+    color: var(--text-main);
+    font-weight: 600;
+}
+
+.breadcrumb-item + .breadcrumb-item::before {
+    color: var(--border-soft);
+}
+
+/* Estado: Prenda no encontrada */
+.prenda-no-encontrada {
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-soft);
+    border-radius: 20px;
+    padding: 3.5rem 1.5rem;
+    box-shadow: var(--shadow-sm);
+}
+
+.no-encontrado-icon-circle {
+    width: 5rem;
+    height: 5rem;
+    border-radius: 50%;
+    background-color: #F8F5EE;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.no-encontrado-titulo {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+.no-encontrado-desc {
+    font-size: 1rem;
+    color: var(--text-muted);
+    line-height: 1.55;
+    max-width: 480px;
+}
+
+/* ==========================================================================
+   COLUMNA IZQUIERDA: Foto grande vertical
+   ========================================================================== */
+.detalle-foto-card {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 4 / 5;
+    border-radius: 24px;
+    overflow: hidden;
+    background-color: #F8F5EE;
+    border: 1px solid var(--border-soft);
+    box-shadow: var(--shadow-md);
+}
+
+.detalle-foto-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.5s ease;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .detalle-foto-card:hover .detalle-foto-img {
+        transform: scale(1.03);
+    }
+}
+
+.detalle-foto-placeholder {
+    width: 100%;
+    height: 100%;
+    background-color: #F3EFE4;
+    color: var(--brand-primary);
+}
+
+.placeholder-icon {
+    opacity: 0.65;
+}
+
+.placeholder-sub {
+    font-family: var(--font-heading);
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    opacity: 0.75;
+}
+
+/* Badges sobre la foto principal */
+.foto-badge-unica {
+    position: absolute;
+    top: 1.25rem;
+    left: 1.25rem;
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.45rem 0.95rem;
+    border-radius: 9999px;
+    background-color: var(--brand-accent-orange);
+    color: var(--text-main);
+    font-size: 0.8125rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    box-shadow: 0 2px 8px rgba(255, 138, 61, 0.35);
+}
+
+.foto-badge-verificacion {
+    position: absolute;
+    bottom: 1.25rem;
+    right: 1.25rem;
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.85rem;
+    border-radius: 12px;
+    background-color: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(6px);
+    color: var(--text-main);
+    font-size: 0.78rem;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(20, 52, 43, 0.08);
+    border: 1px solid rgba(232, 226, 207, 0.6);
+}
+
+.foto-badge-verificacion svg {
+    color: var(--brand-primary);
+}
+
+/* Estado Vendido / Sin Stock en foto principal */
+.foto-sin-stock .detalle-foto-img {
+    filter: grayscale(45%);
+}
+
+.foto-overlay-vendido {
+    position: absolute;
+    inset: 0;
+    background-color: rgba(20, 52, 43, 0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 3;
+}
+
+.badge-vendido-overlay {
+    background-color: var(--text-main);
+    color: #FFFFFF;
+    font-size: 1rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 0.65rem 1.6rem;
+    border-radius: 9999px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* ==========================================================================
+   COLUMNA DERECHA: Información detallada de la prenda
+   ========================================================================== */
+.detalle-info-panel {
+    width: 100%;
+}
+
+.producto-categoria-top {
+    font-size: 0.8125rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--brand-primary);
+}
+
+.producto-nombre-principal {
+    font-size: 2.15rem;
+    line-height: 1.2;
+    font-weight: 700;
+    color: var(--text-main);
+    margin: 0;
+}
+
+@media (min-width: 768px) {
+    .producto-nombre-principal {
+        font-size: 2.5rem;
+    }
+}
+
+.producto-precio-seccion {
+    padding-bottom: 0.25rem;
+}
+
+.producto-precio-grande {
+    font-size: 2.15rem;
+    font-weight: 700;
+    color: var(--brand-primary);
+    line-height: 1;
+}
+
+.producto-precio-moneda {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.precio-tachado {
+    color: var(--text-muted);
+    text-decoration: line-through;
+}
+
+/* Chips de Talle, Estado y Stock */
+.producto-chips-contenedor {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+    padding: 0.25rem 0;
+}
+
+.detalle-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.45rem 1rem;
+    border-radius: 9999px;
+    font-size: 0.875rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.chip-talle-destacado {
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-soft);
+    color: var(--text-main);
+    box-shadow: var(--shadow-sm);
+}
+
+.chip-talle-destacado svg {
+    color: var(--brand-primary);
+}
+
+.chip-estado-destacado {
+    background-color: var(--brand-primary-soft);
+    color: var(--brand-primary);
+}
+
+.chip-stock-unica {
+    background-color: var(--brand-accent-orange);
+    color: var(--text-main);
+}
+
+.chip-stock-escaso {
+    background-color: #FFE6D5;
+    color: #9a3412;
+    border: 1px solid #FFD3B8;
+}
+
+.chip-stock-agotado {
+    background-color: #E2E8F0;
+    color: #475569;
+}
+
+/* Caja de Observaciones: amarillo suave (#FFD23F suave) */
+.caja-observaciones {
+    background-color: #FFF9E6;
+    border: 1px solid #FFE680;
+    border-radius: 16px;
+    padding: 1.15rem 1.25rem;
+    color: var(--text-main);
+    box-shadow: 0 1px 4px rgba(255, 210, 63, 0.12);
+}
+
+.caja-observaciones-titulo {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #8A6400;
+    margin-bottom: 0.35rem;
+}
+
+.caja-observaciones-texto {
+    font-size: 0.925rem;
+    line-height: 1.55;
+    color: var(--text-main);
+    margin: 0;
+}
+
+/* Descripción de la prenda */
+.producto-descripcion-box {
+    padding: 0.25rem 0;
+}
+
+.producto-descripcion-parrafo {
+    font-size: 0.975rem;
+    line-height: 1.65;
+    color: var(--text-muted);
+    margin: 0;
+}
+
+/* Acciones de compra */
+.acciones-fila {
+    width: 100%;
+}
+
+.selector-cantidad-box {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-soft);
+    padding: 0.45rem 0.85rem;
+    border-radius: 12px;
+    box-shadow: var(--shadow-sm);
+    min-height: 3.25rem;
+}
+
+.selector-cantidad-label {
+    font-size: 0.8125rem;
+    font-weight: 700;
+    color: var(--text-muted);
+}
+
+.selector-cantidad-botones {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    background-color: #F8F5EE;
+    border-radius: 8px;
+    padding: 0.2rem 0.35rem;
+}
+
+.btn-cantidad-control {
+    width: 2rem;
+    height: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #FFFFFF;
+    border: 1px solid var(--border-soft);
+    border-radius: 6px;
+    color: var(--text-main);
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+.btn-cantidad-control:hover:not(:disabled) {
+    background-color: var(--brand-primary-soft);
+    color: var(--brand-primary);
+}
+
+.btn-cantidad-control:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.cantidad-numero {
+    width: 1.75rem;
+    text-align: center;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+.btn-agregar-grande {
+    min-height: 3.25rem;
+    font-size: 1.05rem;
+    font-weight: 700;
+    border-radius: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.65rem;
+    padding: 0.75rem 1.75rem;
+    box-shadow: 0 4px 14px rgba(11, 122, 94, 0.25);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.btn-agregar-grande:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(11, 122, 94, 0.35);
+}
+
+.btn-vendido-grande {
+    min-height: 3.25rem;
+    font-size: 1rem;
+    font-weight: 700;
+    border-radius: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background-color: #CBD5E1;
+    border-color: #CBD5E1;
+    color: #475569;
+}
+
+.btn-prendas-similares {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--brand-primary);
+    text-decoration: none;
+    padding: 0.5rem 0;
+}
+
+.btn-prendas-similares:hover {
+    color: var(--brand-primary-hover);
+    text-decoration: underline;
+}
+
+/* ==========================================================================
+   TRES LÍNEAS CON ICONO (Trust Strip bajo el botón de compra)
+   ========================================================================== */
+.detalle-trust-strip {
+    border-top: 1px solid var(--border-soft);
+}
+
+.trust-strip-item {
+    padding: 0.7rem 0.9rem;
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-soft);
+    border-radius: 12px;
+    box-shadow: var(--shadow-sm);
+}
+
+.trust-strip-icon {
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.icon-tienda {
+    background-color: var(--brand-primary-soft);
+    color: var(--brand-primary);
+}
+
+.icon-pago {
+    background-color: #FFE6D5;
+    color: var(--brand-accent-orange);
+}
+
+.icon-calidad {
+    background-color: #D6F2E7;
+    color: var(--brand-primary);
+}
+
+.trust-strip-texto {
+    font-size: 0.925rem;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+/* ==========================================================================
+   SECCIÓN INFERIOR: Prendas relacionadas
+   ========================================================================== */
+.relacionados-subtitulo {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    color: var(--brand-accent-orange);
+}
+
+.relacionados-titulo {
+    font-size: 1.65rem;
+    font-weight: 700;
+    color: var(--text-main);
+    margin: 0;
+}
+
+.link-ver-catalogo {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--brand-primary);
+    text-decoration: none;
+}
+
+.link-ver-catalogo:hover {
+    color: var(--brand-primary-hover);
+    text-decoration: underline;
+}
+
+.grilla-productos-relacionados {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+}
+
+@media (min-width: 768px) {
+    .grilla-productos-relacionados {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1.25rem;
+    }
+}
+
+@media (min-width: 992px) {
+    .grilla-productos-relacionados {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1.5rem;
+    }
+}
+
+/* Estilos de tarjeta de producto (idénticos al catálogo) */
+.card-producto {
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-soft);
+    border-radius: 16px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: var(--shadow-sm);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .card-producto:hover {
+        transform: translateY(-3px);
+        box-shadow: var(--shadow-md);
+        border-color: #D6CCA9;
+    }
+}
+
+.card-img-link {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+}
+
+.card-img-container {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 3 / 4;
+    background-color: #F8F5EE;
+    overflow: hidden;
+}
+
+.card-producto-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.4s ease;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .card-producto:hover .card-producto-img {
+        transform: scale(1.04);
+    }
+}
+
+.card-img-placeholder {
+    width: 100%;
+    height: 100%;
+    background-color: #F3EFE4;
+    color: var(--brand-primary);
+    opacity: 0.85;
+}
+
+.card-chips-overlay {
+    position: absolute;
+    top: 0.65rem;
+    left: 0.65rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    z-index: 2;
+}
+
+.chip-badge {
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 0.25rem 0.55rem;
+    border-radius: 9999px;
+    line-height: 1.1;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.chip-talle {
+    background-color: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(4px);
+    color: var(--text-main);
+    border: 1px solid var(--border-soft);
+}
+
+.chip-estado {
+    background-color: var(--brand-primary-soft);
+    color: var(--brand-primary);
+}
+
+.chip-stock-unica {
+    background-color: rgba(254, 243, 199, 0.95);
+    color: #92400e;
+    border: 1px solid rgba(253, 230, 138, 0.8);
+}
+
+.producto-sin-stock {
+    opacity: 0.72;
+}
+
+.producto-sin-stock .card-producto-img {
+    filter: grayscale(45%);
+}
+
+.overlay-vendido {
+    position: absolute;
+    inset: 0;
+    background-color: rgba(20, 52, 43, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 3;
+}
+
+.badge-vendido {
+    background-color: var(--text-main);
+    color: #FFFFFF;
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 0.35rem 0.9rem;
+    border-radius: 9999px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+.card-producto .card-body {
+    padding: 0.85rem;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    gap: 0.75rem;
+}
+
+@media (min-width: 768px) {
+    .card-producto .card-body {
+        padding: 1rem;
+    }
+}
+
+.card-info-top {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.producto-categoria {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+}
+
+.producto-nombre {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--text-main);
+    line-height: 1.35;
+    margin: 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    min-height: 2.4rem;
+}
+
+@media (min-width: 768px) {
+    .producto-nombre {
+        font-size: 0.95rem;
+    }
+}
+
+.producto-nombre-link {
+    color: inherit;
+    text-decoration: none;
+    transition: color 0.15s ease;
+}
+
+.producto-nombre-link:hover {
+    color: var(--brand-primary);
+    text-decoration: underline;
+}
+
+.card-action-bottom {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: auto;
+}
+
+.producto-precio-wrap {
+    padding-top: 0.35rem;
+    border-top: 1px solid rgba(232, 226, 207, 0.6);
+}
+
+.producto-precio {
+    font-family: var(--font-heading);
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+.precio-agotado {
+    color: var(--text-muted);
+    text-decoration: line-through;
+}
+
+.btn-vendido {
+    min-height: 2.5rem;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    border-radius: 10px;
+    background-color: #E2E8F0;
+    border-color: #E2E8F0;
+    color: #64748B;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+}
+
+/* Toast flotante */
+.cart-toast {
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    z-index: 1050;
+    background-color: var(--text-main);
+    color: #FFFFFF;
+    border-radius: 14px;
+    padding: 0.85rem 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+    animation: toastSlideUp 0.3s ease-out;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+@keyframes toastSlideUp {
+    from {
+        opacity: 0;
+        transform: translateY(1.5rem);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.toast-icon-circle {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    background-color: var(--brand-primary);
+    color: #FFFFFF;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.toast-text-wrap {
+    display: flex;
+    flex-direction: column;
+}
+
+.toast-headline {
+    font-weight: 700;
+    font-size: 0.875rem;
+}
+
+.toast-detail {
+    font-size: 0.78rem;
+    color: #D6F2E7;
+}

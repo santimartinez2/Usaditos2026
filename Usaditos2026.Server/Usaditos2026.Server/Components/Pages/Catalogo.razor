@@ -336,53 +336,55 @@
                 {
                     var sinStock = producto.StockDisponible == 0;
                     <article class="card-producto @(sinStock ? "producto-sin-stock" : "")">
-                        <div class="card-img-container">
-                            @if (!string.IsNullOrWhiteSpace(producto.ImagenUrl))
-                            {
-                                <img src="@producto.ImagenUrl"
-                                     alt="@producto.Nombre"
-                                     class="card-img-top card-producto-img"
-                                     loading="lazy" />
-                            }
-                            else
-                            {
-                                <div class="card-img-placeholder d-flex align-items-center justify-content-center" aria-hidden="true">
-                                    <svg class="placeholder-icon" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-                                        <path d="M12 3a2 2 0 0 1 2 2c0 1.1-.9 2-2 2a2 2 0 0 1-2-2 2 2 0 0 1 2-2z" />
-                                        <path d="M12 7v2" />
-                                        <path d="M2.5 16.5 12 9l9.5 7.5a1.5 1.5 0 0 1-.9 2.5H3.4a1.5 1.5 0 0 1-.9-2.5z" />
-                                    </svg>
-                                </div>
-                            }
+                        <a href="@($"/producto/{producto.Id}")" class="card-img-link" aria-label="@($"Ver detalle de {producto.Nombre}")">
+                            <div class="card-img-container">
+                                @if (!string.IsNullOrWhiteSpace(producto.ImagenUrl))
+                                {
+                                    <img src="@producto.ImagenUrl"
+                                         alt="@producto.Nombre"
+                                         class="card-img-top card-producto-img"
+                                         loading="lazy" />
+                                }
+                                else
+                                {
+                                    <div class="card-img-placeholder d-flex align-items-center justify-content-center" aria-hidden="true">
+                                        <svg class="placeholder-icon" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M12 3a2 2 0 0 1 2 2c0 1.1-.9 2-2 2a2 2 0 0 1-2-2 2 2 0 0 1 2-2z" />
+                                            <path d="M12 7v2" />
+                                            <path d="M2.5 16.5 12 9l9.5 7.5a1.5 1.5 0 0 1-.9 2.5H3.4a1.5 1.5 0 0 1-.9-2.5z" />
+                                        </svg>
+                                    </div>
+                                }
 
-                            <!-- Chips de Talle, Estado y Stock -->
-                            <div class="card-chips-overlay">
-                                @if (!string.IsNullOrWhiteSpace(producto.Talle))
+                                <!-- Chips de Talle, Estado y Stock -->
+                                <div class="card-chips-overlay">
+                                    @if (!string.IsNullOrWhiteSpace(producto.Talle))
+                                    {
+                                        <span class="chip-badge chip-talle">@TalleTextoHelper.Formatear(producto.Talle)</span>
+                                    }
+                                    @if (!string.IsNullOrWhiteSpace(producto.EstadoTexto))
+                                    {
+                                        <span class="chip-badge chip-estado">@producto.EstadoTexto</span>
+                                    }
+                                    @if (producto.StockDisponible == 1)
+                                    {
+                                        <span class="chip-badge chip-stock-unica">Pieza única</span>
+                                    }
+                                    else if (producto.StockDisponible >= 2 && producto.StockDisponible <= 5)
+                                    {
+                                        <span class="chip-badge chip-stock-escaso">Quedan @producto.StockDisponible</span>
+                                    }
+                                </div>
+
+                                <!-- Overlay Vendido si no hay stock -->
+                                @if (sinStock)
                                 {
-                                    <span class="chip-badge chip-talle">@TalleTextoHelper.Formatear(producto.Talle)</span>
-                                }
-                                @if (!string.IsNullOrWhiteSpace(producto.EstadoTexto))
-                                {
-                                    <span class="chip-badge chip-estado">@producto.EstadoTexto</span>
-                                }
-                                @if (producto.StockDisponible == 1)
-                                {
-                                    <span class="chip-badge chip-stock-unica">Pieza única</span>
-                                }
-                                else if (producto.StockDisponible >= 2 && producto.StockDisponible <= 5)
-                                {
-                                    <span class="chip-badge chip-stock-escaso">Quedan @producto.StockDisponible</span>
+                                    <div class="overlay-vendido" aria-hidden="true">
+                                        <span class="badge-vendido">Vendido</span>
+                                    </div>
                                 }
                             </div>
-
-                            <!-- Overlay Vendido si no hay stock -->
-                            @if (sinStock)
-                            {
-                                <div class="overlay-vendido" aria-hidden="true">
-                                    <span class="badge-vendido">Vendido</span>
-                                </div>
-                            }
-                        </div>
+                        </a>
 
                         <div class="card-body d-flex flex-column justify-content-between">
                             <div class="card-info-top">
@@ -390,7 +392,9 @@
                                 {
                                     <span class="producto-categoria">@producto.NombreCategoria</span>
                                 }
-                                <h2 class="producto-nombre">@producto.Nombre</h2>
+                                <h2 class="producto-nombre">
+                                    <a href="@($"/producto/{producto.Id}")" class="producto-nombre-link">@producto.Nombre</a>
+                                </h2>
                             </div>
 
                             <div class="card-action-bottom">
