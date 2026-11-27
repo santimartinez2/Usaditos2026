@@ -6,6 +6,7 @@
 @using Usaditos2026.Servicios.Interfaces
 @using Usaditos2026.Shared.DTOs
 @using Usaditos2026.Shared.Excepciones
+@using Usaditos2026.Shared.Utilidades
 @inject ICarritoServicio CarritoServicio
 @inject ICatalogoServicio CatalogoServicio
 @inject ITiendaServicio TiendaServicio
@@ -80,13 +81,6 @@
                 </svg>
                 <span>¿Querés sumar más prendas? Seguir mirando el catálogo</span>
             </a>
-            <div class="carrito-badge-reserva d-none d-sm-flex">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <polyline points="12 6 12 12 16 14"></polyline>
-                </svg>
-                <span>Prendas únicas reservadas por 30 minutos</span>
-            </div>
         </div>
 
         <!-- Encabezado de página -->
@@ -107,7 +101,7 @@
                     {
                         var prod = _productosMap.GetValueOrDefault(item.ProductoId);
                         var tieneImagen = !string.IsNullOrWhiteSpace(prod?.ImagenUrl);
-                        var talleTexto = !string.IsNullOrWhiteSpace(prod?.Talle) ? prod.Talle : "Talle único";
+                        var talleTexto = TalleTextoHelper.Formatear(prod?.Talle);
                         var estadoTexto = !string.IsNullOrWhiteSpace(prod?.EstadoTexto) ? prod.EstadoTexto : "Muy buen estado";
 
                         <article class="cart-item-card">
@@ -151,7 +145,7 @@
 
                                 <!-- Chips de talle y estado -->
                                 <div class="item-chips-row">
-                                    <span class="chip-talle">Talle @talleTexto</span>
+                                    <span class="chip-talle">@talleTexto</span>
                                     <span class="chip-estado">@estadoTexto</span>
                                 </div>
 
@@ -219,9 +213,6 @@
                         </svg>
                         <span>Vaciar carrito</span>
                     </button>
-                    <span class="nota-sanitizado">
-                        Todas las prendas fueron higienizadas y revisadas minuciosamente.
-                    </span>
                 </div>
             </section>
 
@@ -290,7 +281,7 @@
                             </svg>
                             <div class="info-text">
                                 <span class="info-titulo">Retirás en el local</span>
-                                <span class="info-detalle">@(_tiendaInfo?.Direccion ?? "Av. Siempre Viva 742, Hernando, Córdoba.")</span>
+                                <span class="info-detalle">@(!string.IsNullOrWhiteSpace(_tiendaInfo?.Direccion) ? _tiendaInfo.Direccion : "Consultá este dato con el local")</span>
                             </div>
                         </div>
 
@@ -301,17 +292,8 @@
                             </svg>
                             <div class="info-text">
                                 <span class="info-titulo">El pago se coordina con el local</span>
-                                <p class="info-detalle mb-0">Abonás cuando retirás o transferís directo a nuestro alias oficial.</p>
+                                <p class="info-detalle mb-0">Abonás cuando retirás o transferís directo a el alias que te indicamos.</p>
                             </div>
-                        </div>
-
-                        <div class="badge-beneficio-efectivo">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                <line x1="19" y1="5" x2="5" y2="19"></line>
-                                <circle cx="6.5" cy="6.5" r="2.5"></circle>
-                                <circle cx="17.5" cy="17.5" r="2.5"></circle>
-                            </svg>
-                            <span><strong>10% OFF</strong> pagando en efectivo al retirar</span>
                         </div>
                     </div>
                 </div>
