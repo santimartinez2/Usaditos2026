@@ -26,6 +26,37 @@ namespace Usaditos2026.Repositorio
                 .ToListAsync();
         }
 
+        public async Task<List<(int Id, string? ImagenUrl)>> ObtenerImagenesAsync(IReadOnlyCollection<int> productoIds)
+        {
+            var datos = await _context.Productos
+                .AsNoTracking()
+                .Where(p => productoIds.Contains(p.Id))
+                .Select(p => new { p.Id, p.ImagenUrl })
+                .ToListAsync();
+
+            return datos.Select(x => (x.Id, x.ImagenUrl)).ToList();
+        }
+
+        public async Task<Producto?> ObtenerProductoActivoAsync(int id)
+        {
+            return await _context.Productos
+                .AsNoTracking()
+                .Include(p => p.Categoria)
+                .FirstOrDefaultAsync(p => p.Activo && p.Id == id);
+        }
+
+        public async Task<List<Producto>> ListarRelacionadosAsync(int id, int categoriaId, int cantidad)
+        {
+            return await _context.Productos
+                .AsNoTracking()
+                .Include(p => p.Categoria)
+                .Where(p => p.Activo && p.StockDisponible > 0 && p.CategoriaId == categoriaId && p.Id != id)
+                .OrderByDescending(p => p.FechaAlta)
+                .ThenByDescending(p => p.Id)
+                .Take(cantidad)
+                .ToListAsync();
+        }
+
         public async Task<(List<Producto> Productos, int Total)> BuscarAsync(CatalogoFiltrosDto filtros)
         {
             IQueryable<Producto> query = _context.Productos

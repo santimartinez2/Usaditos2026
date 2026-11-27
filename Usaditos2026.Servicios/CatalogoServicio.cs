@@ -24,6 +24,52 @@ namespace Usaditos2026.Servicios
             return productos.Select(MapearAProductoDto).ToList();
         }
 
+        public async Task<Dictionary<int, string?>> ObtenerImagenesAsync(IEnumerable<int> productoIds)
+        {
+            if (productoIds is null)
+                return new Dictionary<int, string?>();
+
+            var ids = productoIds
+                .Where(id => id > 0)
+                .Distinct()
+                .ToArray();
+
+            if (ids.Length == 0)
+                return new Dictionary<int, string?>();
+
+            if (ids.Length > CatalogoConstantes.MaximoIdsImagenes)
+                throw new ArgumentException($"No se pueden consultar más de {CatalogoConstantes.MaximoIdsImagenes} productos a la vez.");
+
+            var imagenes = await _catalogoRepositorio.ObtenerImagenesAsync(ids);
+
+            return imagenes.ToDictionary(x => x.Id, x => x.ImagenUrl);
+        }
+
+        public async Task<ProductoDto> ObtenerProductoAsync(int id)
+        {
+            var producto = await _catalogoRepositorio.ObtenerProductoActivoAsync(id)
+                ?? throw new KeyNotFoundException("El producto no existe o no está activo.");
+
+            return MapearAProductoDto(producto);
+        }
+
+        public async Task<List<ProductoDto>> ObtenerRelacionadosAsync(
+            int id, int cantidad = CatalogoConstantes.RelacionadosPorDefecto)
+        {
+            if (cantidad < CatalogoConstantes.RelacionadosMinimos ||
+                cantidad > CatalogoConstantes.RelacionadosMaximos)
+                throw new ArgumentException(
+                    $"La cantidad debe estar entre {CatalogoConstantes.RelacionadosMinimos} y {CatalogoConstantes.RelacionadosMaximos}.");
+
+            var producto = await _catalogoRepositorio.ObtenerProductoActivoAsync(id)
+                ?? throw new KeyNotFoundException("El producto no existe o no está activo.");
+
+            var relacionados = await _catalogoRepositorio.ListarRelacionadosAsync(
+                id, producto.CategoriaId, cantidad);
+
+            return relacionados.Select(MapearAProductoDto).ToList();
+        }
+
         public async Task<PaginaDto<ProductoDto>> BuscarProductosAsync(CatalogoFiltrosDto filtros)
         {
             var filtrosValidos = NormalizarFiltros(filtros);
@@ -116,6 +162,7 @@ namespace Usaditos2026.Servicios
                 Descripcion = producto.Descripcion,
                 Precio = producto.Precio,
                 StockDisponible = producto.StockDisponible,
+                CategoriaId = producto.CategoriaId,
                 ImagenUrl = producto.ImagenUrl,
                 Talle = producto.Talle,
                 Estado = producto.Estado.ToString(),

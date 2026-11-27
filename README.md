@@ -123,6 +123,8 @@ El proyecto implementa de punta a punta los casos de uso **Agregar y eliminar pr
 - **Administración de pedidos:** Solo API REST (`/api/admin/pedidos`). Listado paginado y filtrable, detalle con `rowVersion`, transiciones de estado y registro de pago. No se agregaron páginas Blazor.
 - **Imágenes de producto:** Una imagen principal opcional por producto (`Producto.ImagenUrl`, `nvarchar(300)`). Solo API REST: `POST /api/admin/productos/{id}/imagen` (multipart/form-data) y `DELETE /api/admin/productos/{id}/imagen`. El nombre del archivo **siempre lo genera el servidor** (`GUID` + extensión detectada); el `fileName` del cliente nunca se usa. Se aceptan JPEG, PNG y WebP verificando los magic bytes, con `RequestSizeLimit` y validación real en el servicio. SkiaSharp **4.157.0** (MIT) valida dimensiones antes de decodificar (lado ≤ 8000 px, ≤ 40 MP), aplica `SKCodec.EncodedOrigin` antes de re-codificar, redimensiona a 1200 px y elimina metadatos/GPS. Los archivos se guardan en `App_Data/uploads/productos` (fuera de `wwwroot`, ignorado por Git) y se sirven desde `/uploads/productos` con caché inmutable y `nosniff`. Si falla la base después de guardar, se borra el archivo nuevo; si sale bien, se borra el anterior (un fallo de borrado solo deja un `LogWarning`). El `rowVersion` viejo responde `409`; formato/dimensiones/tamaño inválidos responden `400`. En Linux se requiere `SkiaSharp.NativeAssets.Linux.NoDependencies` **4.157.0**; se documenta pero no se agrega al proyecto porque el despliegue objetivo es Windows.
 - **Filtro de fechas del admin:** `fechaDesde`/`fechaHasta` se interpretan en `Tienda:ZonaHoraria` (default `America/Argentina/Cordoba`, con fallback `Argentina Standard Time` y luego UTC). `FechaHelper` aplica `DateTime.SpecifyKind(..., DateTimeKind.Unspecified)` antes de convertir, para que un valor con `Z` u offset no corra el día. `fechaHasta` se convierte al inicio del día siguiente y se compara con `<` en UTC (no `.Date.AddDays(1)` en el repositorio).
+- **Detalle y relacionados del catálogo:** `GET /api/productos/{id}` devuelve un `ProductoDto` completo (ahora incluye `categoriaId`) solo si el producto está activo; si no existe o está desactivado responde `404`. `GET /api/productos/{id}/relacionados?cantidad=4` devuelve activos con stock de la misma categoría, excluye el producto actual y ordena por `FechaAlta desc`, `Id desc`. `cantidad` se valida primero y debe estar entre 1 y 8 (`400`); las rutas `buscar` y `filtros` siguen funcionando porque la ruta con id usa el constraint `:int`.
+- **Imágenes para el historial:** `ICatalogoServicio.ObtenerImagenesAsync` devuelve un `Dictionary<int, string?>` en una sola consulta `AsNoTracking`, **incluyendo productos inactivos**, para mostrar la foto de prendas ya vendidas o desactivadas. Descarta ids `<= 0`, deduplica antes de aplicar el tope de 100 ids válidos (más de 100 → `ArgumentException`) y omite ids inexistentes. No expone endpoint público: lo usa la capa de servicios cuando se necesite desde pedidos.
 - **Fuera de alcance:** Pasarela de pago real / cobro online, pantallas Blazor del panel de administración, registro con verificación de email y recuperación de contraseña. El sistema solo registra el estado del pago que confirma el admin.
 
 ---
@@ -305,6 +307,8 @@ Se puede probar desde Swagger (`/swagger`). `/api/productos` es público; los en
 | `GET` | `/api/productos` | Lista los productos activos (sin cambios) |
 | `GET` | `/api/productos/buscar` | Busca activos por `categoriaId`, `talle`, `estado`, `texto`, `soloDisponibles`, `orden`, `page` y `pageSize` |
 | `GET` | `/api/productos/filtros` | Devuelve categorías, talles y estados con cantidades disponibles |
+| `GET` | `/api/productos/{id}` | Detalle de un producto activo (`404` si no existe o está desactivado) |
+| `GET` | `/api/productos/{id}/relacionados?cantidad=4` | Relacionados activos con stock de la misma categoría (`cantidad` 1–8) |
 | `GET` | `/api/carrito` | Obtiene el carrito del cliente |
 | `POST` | `/api/carrito/items` | Agrega un producto al carrito |
 | `PUT` | `/api/carrito/items/{itemId}` | Modifica la cantidad de un ítem |
@@ -346,10 +350,10 @@ Se puede probar desde Swagger (`/swagger`). `/api/productos` es público; los en
 
 | Código | Significado |
 | :---: | :--- |
-| `400` | Datos inválidos (cantidad menor a uno, enum inválido —incluye `estado` o `orden` numérico en la query—, talle fuera de la lista, texto > 100, `page`/`pageSize` inválidos, teléfono/dirección faltante, `rowVersion` vacío o imagen con formato/tamaño/dimensiones inválidos) |
+| `400` | Datos inválidos (cantidad menor a uno, `cantidad` de relacionados fuera de 1–8, enum inválido —incluye `estado` o `orden` numérico en la query—, talle fuera de la lista, texto > 100, `page`/`pageSize` inválidos, teléfono/dirección faltante, `rowVersion` vacío o imagen con formato/tamaño/dimensiones inválidos) |
 | `401` | No hay sesión iniciada |
 | `403` | El ítem o el pedido no pertenece al cliente; o el usuario no es Admin |
-| `404` | El producto, el ítem, el pedido o la categoría no existe |
+| `404` | El producto, el ítem, el pedido o la categoría no existe (en `/api/productos/{id}`, tampoco si está desactivado) |
 | `409` | Sin stock, carrito vacío, estado de pedido/pago inválido, nombre de categoría duplicado, categoría con productos, producto o pedido modificado por otro usuario (también al subir/quitar imagen con un `rowVersion` viejo), o conflicto de concurrencia del checkout |
 
 ### Flujo completo en Swagger
@@ -394,6 +398,9 @@ Se puede probar desde Swagger (`/swagger`). `/api/productos` es público; los en
 3. Probar `soloDisponibles=true`, `categoriaId=<id>` y `talle=6` por separado y combinados: la Musculosa Rayas (stock 0) desaparece con `soloDisponibles=true`.
 4. `GET /api/productos/buscar?estado=1` y `?orden=0` responden `400`; también responden `400` `page=0`, `pageSize=49`, un `texto` de más de 100 caracteres y un `talle` fuera de la lista.
 5. `GET /api/productos` sigue devolviendo el listado simple de activos, ahora con `talle`, `estado`, `estadoTexto`, `observaciones`, `fechaAlta` e `imagenUrl`.
+6. `GET /api/productos/1` devuelve el detalle completo de un producto activo, con `categoriaId` y `nombreCategoria`. Probar con un id inexistente o con uno desactivado desde el panel admin: responde `404`.
+7. `GET /api/productos/1/relacionados?cantidad=2` devuelve hasta 2 productos activos con stock de la misma categoría, sin incluir el producto 1. `?cantidad=0` y `?cantidad=9` responden `400` aunque el id no exista: la cantidad se valida primero.
+8. Volver a ejecutar `GET /api/productos/buscar` y `GET /api/productos/filtros`: siguen funcionando igual, porque las rutas literales tienen prioridad y `{id:int}` solo acepta números.
 
 ### Flujo de pedidos en Swagger (Admin)
 
@@ -470,5 +477,7 @@ Se puede probar desde Swagger (`/swagger`). `/api/productos` es público; los en
 - [x] `GET /api/productos/filtros` con cantidades por categoría, talle y estado, sin incluir inactivos
 - [x] Validación de enums por query string (`estado` y `orden` numéricos dan `400`)
 - [x] ABM admin valida talle/estado/observaciones y devuelve `estadoTexto` y `fechaAlta`
+- [x] `GET /api/productos/{id}` y `GET /api/productos/{id}/relacionados` (públicos, con `400`/`404` según el caso)
+- [x] `ObtenerImagenesAsync` en una sola consulta: incluye inactivos, omite inexistentes, descarta ids `<= 0`, deduplica y limita a 100 ids válidos
 - [ ] Contador de unidades del menú actualizado en vivo (hoy se actualiza al navegar entre páginas)
 - [ ] Pantallas Blazor para confirmar pedido y ver el historial (fuera de alcance: solo backend)

@@ -43,6 +43,37 @@ namespace Usaditos2026.Server.Controllers
             return Ok(await _catalogoServicio.ObtenerOpcionesFiltroAsync());
         }
 
+        [HttpGet("{id:int}")]
+        public async Task<ActionResult<ProductoDto>> Obtener(int id)
+        {
+            try
+            {
+                return Ok(await _catalogoServicio.ObtenerProductoAsync(id));
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { mensaje = ex.Message });
+            }
+        }
+
+        [HttpGet("{id:int}/relacionados")]
+        public async Task<ActionResult<List<ProductoDto>>> ObtenerRelacionados(
+            int id, [FromQuery] int cantidad = CatalogoConstantes.RelacionadosPorDefecto)
+        {
+            try
+            {
+                return Ok(await _catalogoServicio.ObtenerRelacionadosAsync(id, cantidad));
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { mensaje = ex.Message });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { mensaje = ex.Message });
+            }
+        }
+
         private void ValidarEnumsDelQuery()
         {
             ValidarEnumDelQuery<EstadoPrenda>("estado", "El estado del filtro es inválido.");
