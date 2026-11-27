@@ -119,7 +119,7 @@
                                         <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
                                         <line x1="3" y1="6" x2="21" y2="6"></line>
                                     </svg>
-                                    <span>Listo para retirar</span>
+                                    <span>@(_pedido.TipoEntrega == TipoEntrega.Envio ? "Listo para enviar" : "Listo para retirar")</span>
                                 }
                                 else if (_pedido.Estado == PedidoConstantes.EstadoEntregado)
                                 {
@@ -205,7 +205,7 @@
                             <!-- Conector 1 -->
                             <div class="step-connector @(EsPasoAlcanzado(2, _pedido.Estado) ? "connector-active" : "")" aria-hidden="true"></div>
 
-                            <!-- Paso 2: Listo para retirar -->
+                            <!-- Paso 2: Listo para retirar / Listo para enviar -->
                             <div class="timeline-step @(EsPasoAlcanzado(2, _pedido.Estado) ? "step-active" : "step-pending")">
                                 <div class="step-icon-wrap" aria-hidden="true">
                                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -215,7 +215,7 @@
                                     </svg>
                                 </div>
                                 <div class="step-content">
-                                    <span class="step-name font-serif">Listo para retirar</span>
+                                    <span class="step-name font-serif">@(_pedido.TipoEntrega == TipoEntrega.Envio ? "Listo para enviar" : "Listo para retirar")</span>
                                     <p class="step-description">Te avisamos cuando esté preparado.</p>
                                 </div>
                             </div>
@@ -255,14 +255,14 @@
                         <div class="prendas-list">
                             @foreach (var item in _pedido.Items)
                             {
-                                var tieneProducto = _productosMap.TryGetValue(item.ProductoId, out var prod);
+                                var tieneImagen = _imagenesMap.TryGetValue(item.ProductoId, out var imagenUrl) && !string.IsNullOrWhiteSpace(imagenUrl);
 
                                 <article class="prenda-item-card">
                                     <!-- Foto o placeholder -->
                                     <div class="prenda-thumb-wrap">
-                                        @if (tieneProducto && !string.IsNullOrWhiteSpace(prod?.ImagenUrl))
+                                        @if (tieneImagen)
                                         {
-                                            <img src="@prod.ImagenUrl"
+                                            <img src="@imagenUrl"
                                                  alt="@item.NombreProducto"
                                                  class="prenda-thumb-img"
                                                  loading="lazy" />
@@ -282,16 +282,8 @@
                                     <!-- Datos de la prenda -->
                                     <div class="prenda-info-wrap">
                                         <div class="prenda-badges-row">
-                                            @if (tieneProducto && !string.IsNullOrWhiteSpace(prod?.EstadoTexto))
-                                            {
-                                                <span class="prenda-badge-estado">@prod.EstadoTexto</span>
-                                            }
-                                            @if (tieneProducto && !string.IsNullOrWhiteSpace(prod?.Talle))
-                                            {
-                                                <span class="prenda-badge-talle">Talle @prod.Talle</span>
-                                            }
+                                            <span class="prenda-badge-talle">@TalleTextoHelper.Formatear(null)</span>
                                         </div>
-
                                         <h3 class="prenda-nombre font-serif">@item.NombreProducto</h3>
 
                                         <div class="prenda-cantidad-precio">
@@ -358,10 +350,10 @@
                             @if (_pedido.TipoEntrega == TipoEntrega.Retiro)
                             {
                                 <p class="inner-main-text">
-                                    <strong>@(!string.IsNullOrWhiteSpace(_tiendaInfo?.Direccion) ? _tiendaInfo.Direccion : "Av. Siempre Viva 742, Hernando")</strong>
+                                    <strong>@(!string.IsNullOrWhiteSpace(_tiendaInfo?.Direccion) ? _tiendaInfo.Direccion : "Consultá este dato con el local")</strong>
                                 </p>
                                 <p class="inner-sub-text">
-                                    @(!string.IsNullOrWhiteSpace(_tiendaInfo?.Horario) ? _tiendaInfo.Horario : "Lunes a viernes 9:00 a 18:00 hs · Sábados 10:00 a 13:00 hs")
+                                    @(!string.IsNullOrWhiteSpace(_tiendaInfo?.Horario) ? _tiendaInfo.Horario : "Consultá este dato con el local")
                                 </p>
                             }
                             else
@@ -407,7 +399,7 @@
                                 </div>
                                 <div>
                                     <span class="box-caption">Método de pago</span>
-                                    <h2 class="box-title font-serif">@ObtenerNombreMetodoPago(_pedido.MetodoPago)</h2>
+                                    <h2 class="box-title font-serif">@ObtenerNombreMetodoPago(_pedido.MetodoPago, _pedido.TipoEntrega)</h2>
                                 </div>
                             </div>
 
@@ -428,11 +420,8 @@
                             <div class="box-inner-highlight d-flex align-items-center justify-content-between gap-2 mt-2">
                                 <div class="min-w-0">
                                     <span class="inner-caption">Alias para transferir</span>
-                                    <strong class="inner-alias-text">@(!string.IsNullOrWhiteSpace(_tiendaInfo?.AliasTransferencia) ? _tiendaInfo.AliasTransferencia : "USADITOSHERNANDO")</strong>
-                                    @if (!string.IsNullOrWhiteSpace(_tiendaInfo?.TitularTransferencia))
-                                    {
-                                        <span class="inner-titular-text d-block">Titular: @_tiendaInfo.TitularTransferencia</span>
-                                    }
+                                    <strong class="inner-alias-text">@(!string.IsNullOrWhiteSpace(_tiendaInfo?.AliasTransferencia) ? _tiendaInfo.AliasTransferencia : "Consultá este dato con el local")</strong>
+                                    <span class="inner-titular-text d-block">Titular: @(!string.IsNullOrWhiteSpace(_tiendaInfo?.TitularTransferencia) ? _tiendaInfo.TitularTransferencia : "Consultá este dato con el local")</span>
                                 </div>
                                 <button type="button" class="btn btn-sm btn-outline-primary shrink-0" @onclick="CopiarAliasAsync">
                                     @if (_aliasCopiado)
@@ -580,7 +569,7 @@
 
     private PedidoDto? _pedido;
     private TiendaInfoDto? _tiendaInfo;
-    private Dictionary<int, ProductoDto> _productosMap = new();
+    private Dictionary<int, string?> _imagenesMap = new();
 
     private int _clienteId;
     private bool _cargando = true;
@@ -621,7 +610,7 @@
         {
             _tiendaInfo = TiendaServicio.ObtenerInfo();
             _pedido = await PedidoServicio.ObtenerPedidoAsync(_clienteId, Id);
-            await CargarProductosMapAsync();
+            await CargarImagenesAsync();
         }
         catch (KeyNotFoundException)
         {
@@ -641,16 +630,19 @@
         }
     }
 
-    private async Task CargarProductosMapAsync()
+    private async Task CargarImagenesAsync()
     {
+        if (_pedido is null || _pedido.Items.Count == 0)
+            return;
+
         try
         {
-            var productos = await CatalogoServicio.ObtenerProductosAsync();
-            _productosMap = productos.ToDictionary(p => p.Id);
+            var ids = _pedido.Items.Select(i => i.ProductoId).Distinct();
+            _imagenesMap = await CatalogoServicio.ObtenerImagenesAsync(ids);
         }
         catch
         {
-            // Continuar con los datos disponibles del pedido
+            _imagenesMap = new();
         }
     }
 
@@ -708,9 +700,12 @@
 
     private async Task CopiarAliasAsync()
     {
-        var alias = !string.IsNullOrWhiteSpace(_tiendaInfo?.AliasTransferencia)
-            ? _tiendaInfo.AliasTransferencia
-            : "USADITOSHERNANDO";
+        if (string.IsNullOrWhiteSpace(_tiendaInfo?.AliasTransferencia))
+        {
+            return;
+        }
+
+        var alias = _tiendaInfo.AliasTransferencia;
 
         try
         {
@@ -759,12 +754,12 @@
         };
     }
 
-    private static string ObtenerNombreMetodoPago(MetodoPago metodo)
+    private static string ObtenerNombreMetodoPago(MetodoPago metodo, TipoEntrega entrega)
     {
         return metodo switch
         {
             MetodoPago.Transferencia => "Transferencia bancaria",
-            _ => "Efectivo (al retirar)"
+            _ => entrega == TipoEntrega.Envio ? "Efectivo (al recibir)" : "Efectivo (al retirar)"
         };
     }
 

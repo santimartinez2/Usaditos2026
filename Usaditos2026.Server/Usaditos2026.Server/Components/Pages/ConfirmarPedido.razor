@@ -7,6 +7,7 @@
 @using Usaditos2026.Shared.Constantes
 @using Usaditos2026.Shared.DTOs
 @using Usaditos2026.Shared.Excepciones
+@using Usaditos2026.Shared.Utilidades
 @inject ICarritoServicio CarritoServicio
 @inject IPedidoServicio PedidoServicio
 @inject ITiendaServicio TiendaServicio
@@ -138,16 +139,13 @@
                     <div class="resumen-items-list-compact">
                         @foreach (var item in _carrito.Items)
                         {
-                            var prod = _productosMap.GetValueOrDefault(item.ProductoId);
-                            var tieneImagen = !string.IsNullOrWhiteSpace(prod?.ImagenUrl);
-                            var talleTexto = !string.IsNullOrWhiteSpace(prod?.Talle) ? prod.Talle : "Talle único";
-                            var estadoTexto = !string.IsNullOrWhiteSpace(prod?.EstadoTexto) ? prod.EstadoTexto : "Muy buen estado";
+                            var tieneImagen = _imagenesMap.TryGetValue(item.ProductoId, out var imagenUrl) && !string.IsNullOrWhiteSpace(imagenUrl);
 
                             <div class="resumen-item-compact">
                                 <div class="item-thumb-compact">
                                     @if (tieneImagen)
                                     {
-                                        <img src="@prod!.ImagenUrl" alt="@item.NombreProducto" />
+                                        <img src="@imagenUrl" alt="@item.NombreProducto" />
                                     }
                                     else
                                     {
@@ -161,9 +159,7 @@
                                 <div class="item-info-compact">
                                     <h4 class="item-nombre-compact">@item.NombreProducto</h4>
                                     <div class="item-meta-compact">
-                                        <span>Talle @talleTexto</span>
-                                        <span class="meta-dot">·</span>
-                                        <span class="chip-estado-compact">@estadoTexto</span>
+                                        <span class="chip-talle-compact">@TalleTextoHelper.Formatear(null)</span>
                                     </div>
                                     <div class="item-subtotal-compact">
                                         <span class="item-unitario">@item.Cantidad × @item.PrecioUnitario.ToString("C", _culturaAr)</span>
@@ -202,7 +198,7 @@
             <!-- COLUMNA IZQUIERDA: Formulario de Checkout (7 cols) -->
             <section class="checkout-form-col" aria-label="Formulario de contacto, entrega y pago">
                 <form @onsubmit="ConfirmarPedidoSubmitAsync" novalidate>
-                    <!-- 1. Teléfono de contacto / WhatsApp -->
+                    <!-- 1. Teléfono de contacto -->
                     <div class="checkout-card mb-4">
                         <div class="card-header-clean">
                             <div class="d-flex align-items-center gap-2">
@@ -211,7 +207,7 @@
                                         <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
                                     </svg>
                                 </div>
-                                <h2 class="card-section-title">Teléfono de contacto / WhatsApp</h2>
+                                <h2 class="card-section-title">Teléfono de contacto</h2>
                                 <span class="text-danger fw-bold" aria-hidden="true">*</span>
                             </div>
                             <span class="badge-obligatorio">Obligatorio</span>
@@ -309,10 +305,10 @@
                                             </div>
                                         </div>
                                         <p class="option-description mb-1">
-                                            <strong>@(!string.IsNullOrWhiteSpace(_tiendaInfo?.Direccion) ? _tiendaInfo.Direccion : "Av. Siempre Viva 742, Hernando, Córdoba.")</strong>
+                                            <strong>@(!string.IsNullOrWhiteSpace(_tiendaInfo?.Direccion) ? _tiendaInfo.Direccion : "Consultá este dato con el local")</strong>
                                         </p>
                                         <span class="option-subinfo">
-                                            @(!string.IsNullOrWhiteSpace(_tiendaInfo?.Horario) ? _tiendaInfo.Horario : "Lunes a Viernes 9:00 a 18:00 · Sábados 10:00 a 13:00")
+                                            @(!string.IsNullOrWhiteSpace(_tiendaInfo?.Horario) ? _tiendaInfo.Horario : "Consultá este dato con el local")
                                         </span>
                                     </div>
                                 </button>
@@ -430,7 +426,7 @@
                                                 <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
                                             </svg>
                                         </div>
-                                        <span class="badge-tag promo">10% OFF al retirar</span>
+                                        <span class="badge-tag neutro">@(_request.TipoEntrega == TipoEntrega.Envio ? "Al recibir" : "Al retirar")</span>
                                     </div>
                                     <div class="option-card-content">
                                         <div class="d-flex align-items-center justify-content-between mb-1">
@@ -450,7 +446,7 @@
                                             </div>
                                         </div>
                                         <p class="option-description mb-0">
-                                            Abonás en mano al retirar en el local de Hernando.
+                                            @(_request.TipoEntrega == TipoEntrega.Envio ? "Abonás en mano al recibir tu paquete." : "Abonás en mano al retirar en el local de Hernando.")
                                         </p>
                                     </div>
                                 </button>
@@ -488,7 +484,7 @@
                                             </div>
                                         </div>
                                         <p class="option-description mb-0">
-                                            Enviás el comprobante por WhatsApp para confirmar tu paquete.
+                                            Coordinamos con vos por el teléfono que dejaste.
                                         </p>
                                     </div>
                                 </button>
@@ -514,10 +510,10 @@
                                         <div class="transfer-info">
                                             <div class="d-flex align-items-baseline gap-2 mb-1">
                                                 <span class="label-alias">Alias:</span>
-                                                <span class="valor-alias font-mono">@(!string.IsNullOrWhiteSpace(_tiendaInfo?.AliasTransferencia) ? _tiendaInfo.AliasTransferencia : "USADITOSHERNANDO")</span>
+                                                <span class="valor-alias font-mono">@(!string.IsNullOrWhiteSpace(_tiendaInfo?.AliasTransferencia) ? _tiendaInfo.AliasTransferencia : "Consultá este dato con el local")</span>
                                             </div>
                                             <div class="titular-text">
-                                                Titular: <strong>@(!string.IsNullOrWhiteSpace(_tiendaInfo?.TitularTransferencia) ? _tiendaInfo.TitularTransferencia : "Usaditos Hernando")</strong>
+                                                Titular: <strong>@(!string.IsNullOrWhiteSpace(_tiendaInfo?.TitularTransferencia) ? _tiendaInfo.TitularTransferencia : "Consultá este dato con el local")</strong>
                                             </div>
                                         </div>
                                         <button type="button"
@@ -553,10 +549,17 @@
                                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                                             <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
                                         </svg>
-                                        <span class="panel-box-title">¡Beneficio de ahorro en mostrador!</span>
+                                        <span class="panel-box-title">Pago en efectivo</span>
                                     </div>
                                     <p class="efectivo-note mb-0">
-                                        Al retirar y pagar en efectivo en el local de Hernando, se te aplica un <strong>10% de descuento directo</strong> sobre el total de tus prendas.
+                                        @if (_request.TipoEntrega == TipoEntrega.Envio)
+                                        {
+                                            <span>Abonás en efectivo al recibir tu pedido en tu domicilio.</span>
+                                        }
+                                        else
+                                        {
+                                            <span>Abonás en efectivo al retirar tus prendas en el local de Hernando.</span>
+                                        }
                                     </p>
                                 </div>
                             }
@@ -616,16 +619,13 @@
                     <div class="summary-items-scroll">
                         @foreach (var item in _carrito.Items)
                         {
-                            var prod = _productosMap.GetValueOrDefault(item.ProductoId);
-                            var tieneImagen = !string.IsNullOrWhiteSpace(prod?.ImagenUrl);
-                            var talleTexto = !string.IsNullOrWhiteSpace(prod?.Talle) ? prod.Talle : "Talle único";
-                            var estadoTexto = !string.IsNullOrWhiteSpace(prod?.EstadoTexto) ? prod.EstadoTexto : "Muy buen estado";
+                            var tieneImagen = _imagenesMap.TryGetValue(item.ProductoId, out var imagenUrl) && !string.IsNullOrWhiteSpace(imagenUrl);
 
                             <article class="summary-item-card">
                                 <div class="summary-item-img-wrap">
                                     @if (tieneImagen)
                                     {
-                                        <img src="@prod!.ImagenUrl" alt="@item.NombreProducto" class="summary-item-img" />
+                                        <img src="@imagenUrl" alt="@item.NombreProducto" class="summary-item-img" />
                                     }
                                     else
                                     {
@@ -639,9 +639,7 @@
                                 <div class="summary-item-details">
                                     <h3 class="summary-item-name" title="@item.NombreProducto">@item.NombreProducto</h3>
                                     <div class="summary-item-meta">
-                                        <span class="meta-talle">Talle @talleTexto</span>
-                                        <span class="meta-dot">·</span>
-                                        <span class="meta-estado">@estadoTexto</span>
+                                        <span class="meta-talle">@TalleTextoHelper.Formatear(null)</span>
                                     </div>
                                     <div class="summary-item-price-row">
                                         <span class="unit-price">@item.Cantidad × @item.PrecioUnitario.ToString("C", _culturaAr)</span>
@@ -744,7 +742,7 @@
 
 @code {
     private CarritoDto? _carrito;
-    private Dictionary<int, ProductoDto> _productosMap = new();
+    private Dictionary<int, string?> _imagenesMap = new();
     private TiendaInfoDto? _tiendaInfo;
     private int? _clienteId;
     private bool _cargando = true;
@@ -794,7 +792,7 @@
         {
             _tiendaInfo = TiendaServicio.ObtenerInfo();
             _carrito = await CarritoServicio.ObtenerCarritoAsync(clienteId);
-            await CargarProductosInfoAsync();
+            await CargarImagenesAsync();
         }
         catch (Exception)
         {
@@ -807,16 +805,19 @@
         }
     }
 
-    private async Task CargarProductosInfoAsync()
+    private async Task CargarImagenesAsync()
     {
+        if (_carrito is null || _carrito.Items.Count == 0)
+            return;
+
         try
         {
-            var productos = await CatalogoServicio.ObtenerProductosAsync();
-            _productosMap = productos.ToDictionary(p => p.Id);
+            var ids = _carrito.Items.Select(i => i.ProductoId).Distinct();
+            _imagenesMap = await CatalogoServicio.ObtenerImagenesAsync(ids);
         }
         catch
         {
-            // Continuar operando normalmente si la consulta complementaria falla
+            _imagenesMap = new();
         }
     }
 
@@ -838,9 +839,12 @@
 
     private async Task CopiarAliasAsync()
     {
-        var alias = !string.IsNullOrWhiteSpace(_tiendaInfo?.AliasTransferencia)
-            ? _tiendaInfo.AliasTransferencia
-            : "USADITOSHERNANDO";
+        if (string.IsNullOrWhiteSpace(_tiendaInfo?.AliasTransferencia))
+        {
+            return;
+        }
+
+        var alias = _tiendaInfo.AliasTransferencia;
 
         try
         {

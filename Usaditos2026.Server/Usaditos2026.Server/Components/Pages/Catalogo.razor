@@ -355,19 +355,23 @@
                                 </div>
                             }
 
-                            <!-- Chips de Talle y Estado -->
+                            <!-- Chips de Talle, Estado y Stock -->
                             <div class="card-chips-overlay">
                                 @if (!string.IsNullOrWhiteSpace(producto.Talle))
                                 {
-                                    var talleTexto = producto.Talle.StartsWith("Talle", StringComparison.OrdinalIgnoreCase) ||
-                                                     producto.Talle.StartsWith("Calzado", StringComparison.OrdinalIgnoreCase)
-                                        ? producto.Talle
-                                        : $"Talle {producto.Talle}";
-                                    <span class="chip-badge chip-talle">@talleTexto</span>
+                                    <span class="chip-badge chip-talle">@TalleTextoHelper.Formatear(producto.Talle)</span>
                                 }
                                 @if (!string.IsNullOrWhiteSpace(producto.EstadoTexto))
                                 {
                                     <span class="chip-badge chip-estado">@producto.EstadoTexto</span>
+                                }
+                                @if (producto.StockDisponible == 1)
+                                {
+                                    <span class="chip-badge chip-stock-unica">Pieza única</span>
+                                }
+                                else if (producto.StockDisponible >= 2 && producto.StockDisponible <= 5)
+                                {
+                                    <span class="chip-badge chip-stock-escaso">Quedan @producto.StockDisponible</span>
                                 }
                             </div>
 

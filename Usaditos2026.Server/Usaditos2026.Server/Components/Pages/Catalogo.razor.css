@@ -619,6 +619,18 @@
     color: var(--brand-primary);
 }
 
+.chip-stock-unica {
+    background-color: rgba(254, 243, 199, 0.95);
+    color: #92400e;
+    border: 1px solid rgba(253, 230, 138, 0.8);
+}
+
+.chip-stock-escaso {
+    background-color: rgba(255, 237, 213, 0.95);
+    color: #9a3412;
+    border: 1px solid rgba(254, 215, 170, 0.8);
+}
+
 /* Estado Sin Stock */
 .producto-sin-stock {
     opacity: 0.72;
