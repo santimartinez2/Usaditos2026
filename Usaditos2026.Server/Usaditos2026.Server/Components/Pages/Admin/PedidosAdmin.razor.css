@@ -1,0 +1,434 @@
+/* Estilos de Gestión de Pedidos Admin */
+.admin-pedidos-page {
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+/* Encabezado */
+.header-badge {
+    background-color: var(--brand-primary-soft);
+    color: var(--brand-primary);
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.live-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: var(--brand-primary);
+    animation: pulse-dot 2s infinite ease-in-out;
+}
+
+@keyframes pulse-dot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.85); }
+}
+
+.page-title {
+    font-size: 1.85rem;
+    font-weight: 700;
+    color: var(--text-main);
+    letter-spacing: -0.02em;
+    margin-bottom: 0.25rem;
+}
+
+.page-subtitle {
+    font-size: 0.95rem;
+    color: var(--text-muted);
+}
+
+/* Tarjeta de Filtros */
+.filters-card {
+    background-color: #FFFFFF;
+    border: 1px solid var(--border-soft);
+    border-radius: 16px;
+    padding: 1.25rem 1.5rem;
+    box-shadow: 0 2px 10px rgba(20, 52, 43, 0.03);
+}
+
+.form-label {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: 0.35rem;
+}
+
+.input-icon-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.input-icon {
+    position: absolute;
+    left: 0.85rem;
+    color: var(--text-muted);
+    pointer-events: none;
+}
+
+.input-icon-wrap .form-control {
+    padding-left: 2.35rem;
+}
+
+.form-control, .form-select {
+    border-radius: 10px;
+    border: 1px solid var(--border-soft);
+    font-size: 0.875rem;
+    color: var(--text-main);
+    background-color: #FAF8F2;
+    transition: all 0.15s ease-in-out;
+}
+
+.form-control:focus, .form-select:focus {
+    background-color: #FFFFFF;
+    border-color: var(--brand-primary);
+    box-shadow: 0 0 0 3px rgba(11, 122, 94, 0.15);
+}
+
+/* Tabla Desktop */
+.table-card {
+    background-color: #FFFFFF;
+    border: 1px solid var(--border-soft);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(20, 52, 43, 0.04);
+}
+
+.admin-orders-table {
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.admin-orders-table thead th {
+    background-color: #F8F6F0;
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 1rem 1rem;
+    border-bottom: 1px solid var(--border-soft);
+}
+
+.admin-orders-table tbody td {
+    padding: 1rem 1rem;
+    border-bottom: 1px solid rgba(232, 226, 207, 0.6);
+    font-size: 0.875rem;
+}
+
+.order-row {
+    transition: background-color 0.15s ease;
+}
+
+.order-row:hover {
+    background-color: rgba(214, 242, 231, 0.25);
+}
+
+.th-id {
+    width: 90px;
+}
+
+.td-id {
+    font-weight: 700;
+}
+
+.order-number {
+    font-size: 1.05rem;
+    color: var(--brand-primary);
+    letter-spacing: -0.01em;
+}
+
+.order-date-main {
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+.order-date-sub {
+    font-size: 0.75rem;
+}
+
+.customer-avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background-color: var(--brand-primary-soft);
+    color: var(--brand-primary);
+    font-size: 0.8125rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.customer-name {
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+.customer-sub {
+    font-size: 0.75rem;
+}
+
+.delivery-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.25rem 0.65rem;
+    border-radius: 9999px;
+    background-color: #F3EFE6;
+    color: var(--text-main);
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.payment-method-text {
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+}
+
+/* Chips de Estado */
+.chip-estado {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.25rem 0.65rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.chip-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+}
+
+.chip-confirmado {
+    background-color: var(--brand-primary-soft);
+    color: var(--brand-primary);
+}
+.chip-confirmado .chip-dot {
+    background-color: var(--brand-primary);
+}
+
+.chip-listo {
+    background-color: #FFF4D2;
+    color: #745C00;
+}
+.chip-listo .chip-dot {
+    background-color: #FFD23F;
+}
+
+.chip-entregado {
+    background-color: var(--brand-primary);
+    color: #FFFFFF;
+}
+.chip-entregado .chip-dot {
+    background-color: #A7FFDD;
+}
+
+.chip-cancelado {
+    background-color: #FCE8E6;
+    color: var(--color-error);
+}
+.chip-cancelado .chip-dot {
+    background-color: var(--color-error);
+}
+
+/* Chips de Cobro */
+.chip-pago {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.2rem 0.6rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.pago-pagado {
+    background-color: #D6F2E7;
+    color: var(--brand-primary);
+    border: 1px solid #B4E6D2;
+}
+
+.pago-pendiente {
+    background-color: #FFEAD9;
+    color: var(--brand-accent-orange);
+    border: 1px solid #FFD1B3;
+}
+
+.pago-rechazado {
+    background-color: #FCE8E6;
+    color: var(--color-error);
+    border: 1px solid #F5C6C2;
+}
+
+/* Total */
+.order-total {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text-main);
+    white-space: nowrap;
+}
+
+/* Botón Ver */
+.th-action {
+    width: 80px;
+}
+
+.btn-ver-pedido {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.4rem 0.75rem;
+    border-radius: 8px;
+    background-color: #F3EFE6;
+    color: var(--brand-primary);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    text-decoration: none;
+    border: none;
+    transition: all 0.15s ease-in-out;
+}
+
+.btn-ver-pedido:hover {
+    background-color: var(--brand-primary);
+    color: #FFFFFF;
+    text-decoration: none;
+}
+
+/* Tarjetas para vista móvil (< 992px) */
+.mobile-orders-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+}
+
+.mobile-order-card {
+    background-color: #FFFFFF;
+    border: 1px solid var(--border-soft);
+    border-radius: 14px;
+    padding: 1.15rem;
+    box-shadow: 0 2px 8px rgba(20, 52, 43, 0.03);
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.card-top-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.card-customer-row {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+}
+
+.card-chips-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.card-bottom-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 0.65rem;
+    border-top: 1px solid rgba(232, 226, 207, 0.6);
+}
+
+.order-total-label {
+    font-size: 0.8125rem;
+}
+
+/* Paginación */
+.pagination-footer {
+    padding: 1rem 0;
+}
+
+.pagination-info {
+    font-size: 0.875rem;
+}
+
+.btn-page {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 36px;
+    padding: 0 0.75rem;
+    border-radius: 8px;
+    background-color: #FFFFFF;
+    border: 1px solid var(--border-soft);
+    color: var(--text-main);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    transition: all 0.15s ease;
+}
+
+.btn-page:hover:not(:disabled) {
+    background-color: #F8F6F0;
+    border-color: var(--brand-primary);
+    color: var(--brand-primary);
+}
+
+.btn-page:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.btn-page-number {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background-color: #FFFFFF;
+    border: 1px solid var(--border-soft);
+    color: var(--text-main);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+}
+
+.btn-page-number:hover {
+    background-color: #F8F6F0;
+    color: var(--brand-primary);
+}
+
+.btn-page-number.active {
+    background-color: var(--brand-primary);
+    border-color: var(--brand-primary);
+    color: #FFFFFF;
+    box-shadow: 0 2px 8px rgba(11, 122, 94, 0.3);
+}
+
+/* Estado vacío */
+.empty-state-box {
+    background-color: #FFFFFF;
+    border: 1px dashed var(--border-soft);
+    border-radius: 16px;
+    padding: 3rem 1.5rem;
+}
+
+.empty-icon-wrap {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background-color: #F8F6F0;
+    color: var(--text-muted);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
