@@ -9,6 +9,7 @@ using Usaditos2026.Repositorio.Interfaces;
 using Usaditos2026.Server.Client.Pages;
 using Usaditos2026.Server.Components;
 using Usaditos2026.Server.Data;
+using Usaditos2026.Server.Middleware;
 using Usaditos2026.Server.Storage;
 using Usaditos2026.Servicios;
 using Usaditos2026.Servicios.Interfaces;
@@ -86,6 +87,8 @@ builder.Services.AddControllers()
     .AddJsonOptions(options =>
         options.JsonSerializerOptions.Converters.Add(
             new JsonStringEnumConverter(allowIntegerValues: false)));
+builder.Services.AddProblemDetails();
+builder.Services.AddExceptionHandler<ManejadorGlobalExcepciones>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddRazorComponents()
@@ -116,6 +119,7 @@ if (app.Environment.IsDevelopment())
 
 if (app.Environment.IsDevelopment())
 {
+    app.UseExceptionHandler();
     app.UseWebAssemblyDebugging();
     app.UseSwagger();
     app.UseSwaggerUI(); // Disponible en /swagger
