@@ -19,6 +19,7 @@ using Usaditos2026.Shared.DTOs;
 var builder = WebApplication.CreateBuilder(args);
 
 var connectionString = builder.Configuration.GetConnectionString("ConnSqlServer")
+    ?? builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("No existe la conexión con la base de datos.");
 
 #region Servicios
@@ -39,7 +40,8 @@ builder.Services.AddScoped<IAuthServicio, AuthServicio>();
 builder.Services.AddScoped<IPedidoServicio, PedidoServicio>();
 builder.Services.AddScoped<ITiendaServicio, TiendaServicio>();
 builder.Services.AddScoped<IAlmacenImagenes, AlmacenImagenes>();
-builder.Services.Configure<TiendaInfoDto>(builder.Configuration.GetSection("Tienda"));
+builder.Services.Configure<TiendaOpciones>(builder.Configuration.GetSection(TiendaOpciones.Seccion));
+builder.Services.Configure<TiendaInfoDto>(builder.Configuration.GetSection(TiendaOpciones.Seccion));
 builder.Services.Configure<ImagenesOpciones>(builder.Configuration.GetSection("Imagenes"));
 
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
@@ -106,13 +108,26 @@ var rutaImagenes = Path.IsPathRooted(opcionesImagenes.Ruta)
     : Path.Combine(builder.Environment.ContentRootPath, opcionesImagenes.Ruta.Replace('/', Path.DirectorySeparatorChar));
 Directory.CreateDirectory(rutaImagenes);
 
-if (app.Environment.IsDevelopment())
+using (var scope = app.Services.CreateScope())
 {
-    using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    await db.Database.MigrateAsync();
-    await SeedData.InicializarAsync(db);
-    await SeedData.CrearAdminInicialAsync(db, builder.Configuration, app.Logger);
+
+    // En desarrollo se aplican las migraciones y se cargan las categorías y productos de prueba automáticamente
+    if (app.Environment.IsDevelopment())
+    {
+        await db.Database.MigrateAsync();
+        await SeedData.InicializarAsync(db);
+    }
+
+    // Inicialización segura del usuario administrador para cualquier entorno (Development, Production, etc.)
+    try
+    {
+        await SeedData.InicializarAdminAsync(db, builder.Configuration, app.Environment, app.Logger);
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogWarning(ex, "No se pudo verificar ni inicializar el usuario administrador inicial. Asegurate de haber aplicado las migraciones de base de datos.");
+    }
 }
 
 #region Middleware

@@ -549,7 +549,7 @@
                                     <line x1="12" y1="8" x2="12.01" y2="8"></line>
                                 </svg>
                                 <p class="mb-0">
-                                    Si necesitás cancelarlo, comunicate con el local.
+                                    Si necesitás cancelarlo, comunicate con el local@( !string.IsNullOrWhiteSpace(_tiendaInfo?.WhatsApp) ? $" por WhatsApp al {_tiendaInfo.WhatsApp}" : "" )@( !string.IsNullOrWhiteSpace(_tiendaInfo?.Email) ? $" o por email a {_tiendaInfo.Email}" : "" ).
                                 </p>
                             </div>
                         }
