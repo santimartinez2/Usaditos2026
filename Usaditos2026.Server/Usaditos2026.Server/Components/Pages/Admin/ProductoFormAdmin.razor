@@ -73,6 +73,21 @@
     }
 
     <!-- Alertas generales -->
+    @if (!string.IsNullOrWhiteSpace(_mensajeAviso))
+    {
+        <div class="alert alert-warning d-flex align-items-center justify-content-between p-3 rounded-3 mb-4 shadow-sm" role="alert">
+            <div class="d-flex align-items-center gap-2">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-warning shrink-0" aria-hidden="true">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                    <line x1="12" y1="9" x2="12" y2="13"></line>
+                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+                <span>@_mensajeAviso</span>
+            </div>
+            <button type="button" class="btn-close" aria-label="Cerrar" @onclick="() => _mensajeAviso = null"></button>
+        </div>
+    }
+
     @if (!string.IsNullOrWhiteSpace(_mensajeError))
     {
         <div class="alert alert-danger d-flex align-items-center justify-content-between p-3 rounded-3 mb-4 shadow-sm" role="alert">
@@ -455,6 +470,9 @@
     [Parameter]
     public int? Id { get; set; }
 
+    [SupplyParameterFromQuery(Name = "aviso")]
+    public string? Aviso { get; set; }
+
     private bool EsEdicion => Id.HasValue && Id.Value > 0;
 
     private ProductoAdminDto? _productoCargado;
@@ -486,6 +504,7 @@
     private bool _errorConcurrencia;
     private string? _mensajeError;
     private string? _mensajeExito;
+    private string? _mensajeAviso;
 
     private const long MaxTamanoFotoBytes = 8 * 1024 * 1024; // 8 MB
 
@@ -500,6 +519,7 @@
         _errorConcurrencia = false;
         _mensajeError = null;
         _mensajeExito = null;
+        _mensajeAviso = null;
         _validado = false;
 
         try
@@ -527,6 +547,8 @@
                 _archivoBytes = null;
                 _rowVersion = Array.Empty<byte>();
             }
+
+            ProcesarAvisoQueryString();
         }
         catch (KeyNotFoundException)
         {
@@ -540,6 +562,22 @@
         {
             _cargandoInicial = false;
         }
+    }
+
+    private void ProcesarAvisoQueryString()
+    {
+        if (string.IsNullOrWhiteSpace(Aviso))
+        {
+            return;
+        }
+
+        _mensajeAviso = Aviso.Trim().ToLowerInvariant() switch
+        {
+            "foto" => "El producto se creó, pero la foto no se pudo subir. Podés reintentarlo acá.",
+            "desactivar" => "El producto se creó, pero no se pudo pausar. Podés reintentarlo acá.",
+            "desactivar-foto" => "El producto se creó, pero no se pudo pausar ni subir la foto. Podés reintentarlo acá.",
+            _ => null
+        };
     }
 
     private async Task CargarProductoExistenteAsync(int id)
@@ -576,6 +614,7 @@
         {
             _errorConcurrencia = false;
             _mensajeError = null;
+            _mensajeAviso = null;
             _cargandoInicial = true;
             try
             {
@@ -661,9 +700,13 @@
                 _errorConcurrencia = true;
                 _mensajeError = "El producto fue modificado, recargá";
             }
-            catch (Exception ex)
+            catch (Exception ex) when (EsExcepcionDeNegocio(ex))
             {
-                _mensajeError = $"Error al quitar imagen: {ex.Message}";
+                _mensajeError = ex.Message;
+            }
+            catch (Exception)
+            {
+                _mensajeError = "No se pudo guardar. Probá de nuevo.";
             }
             finally
             {
@@ -677,6 +720,7 @@
         _validado = true;
         _mensajeError = null;
         _mensajeExito = null;
+        _mensajeAviso = null;
         _errorConcurrencia = false;
 
         // Validaciones en cliente
@@ -790,19 +834,53 @@
                 var rowVersionActual = creado.RowVersion;
 
                 // Si el usuario desmarcó 'Activo' en creación (crear nace activo por default)
+                var falloDesactivar = false;
                 if (!_activo)
                 {
-                    await AdminCatalogoServicio.DesactivarProductoAsync(creado.Id, rowVersionActual);
-                    var act = await AdminCatalogoServicio.ObtenerProductoAsync(creado.Id);
-                    rowVersionActual = act.RowVersion;
+                    try
+                    {
+                        await AdminCatalogoServicio.DesactivarProductoAsync(creado.Id, rowVersionActual);
+                        var act = await AdminCatalogoServicio.ObtenerProductoAsync(creado.Id);
+                        rowVersionActual = act.RowVersion;
+                    }
+                    catch
+                    {
+                        falloDesactivar = true;
+                    }
                 }
 
                 // Subir foto si seleccionó una
+                var falloFoto = false;
                 if (_archivoBytes != null)
                 {
-                    using var stream = new MemoryStream(_archivoBytes);
-                    await AdminCatalogoServicio.AsignarImagenAsync(
-                        creado.Id, stream, _archivoBytes.Length, _archivoNombre, rowVersionActual);
+                    try
+                    {
+                        using var stream = new MemoryStream(_archivoBytes);
+                        await AdminCatalogoServicio.AsignarImagenAsync(
+                            creado.Id, stream, _archivoBytes.Length, _archivoNombre, rowVersionActual);
+                    }
+                    catch
+                    {
+                        falloFoto = true;
+                    }
+                }
+
+                if (falloDesactivar && falloFoto)
+                {
+                    Navigation.NavigateTo($"/admin/productos/{creado.Id}?aviso=desactivar-foto");
+                    return;
+                }
+
+                if (falloFoto)
+                {
+                    Navigation.NavigateTo($"/admin/productos/{creado.Id}?aviso=foto");
+                    return;
+                }
+
+                if (falloDesactivar)
+                {
+                    Navigation.NavigateTo($"/admin/productos/{creado.Id}?aviso=desactivar");
+                    return;
                 }
 
                 Navigation.NavigateTo("/admin/productos");
@@ -813,9 +891,13 @@
             _errorConcurrencia = true;
             _mensajeError = "El producto fue modificado, recargá";
         }
-        catch (Exception ex)
+        catch (Exception ex) when (EsExcepcionDeNegocio(ex))
         {
-            _mensajeError = $"Error al guardar el producto: {ex.Message}";
+            _mensajeError = ex.Message;
+        }
+        catch (Exception)
+        {
+            _mensajeError = "No se pudo guardar. Probá de nuevo.";
         }
         finally
         {
@@ -830,6 +912,7 @@
         _guardando = true;
         _mensajeError = null;
         _mensajeExito = null;
+        _mensajeAviso = null;
         _errorConcurrencia = false;
 
         try
@@ -855,13 +938,24 @@
             _errorConcurrencia = true;
             _mensajeError = "El producto fue modificado, recargá";
         }
-        catch (Exception ex)
+        catch (Exception ex) when (EsExcepcionDeNegocio(ex))
         {
-            _mensajeError = $"Error al cambiar estado: {ex.Message}";
+            _mensajeError = ex.Message;
+        }
+        catch (Exception)
+        {
+            _mensajeError = "No se pudo guardar. Probá de nuevo.";
         }
         finally
         {
             _guardando = false;
         }
+    }
+
+    private static bool EsExcepcionDeNegocio(Exception ex)
+    {
+        return ex is ArgumentException
+            || ex is KeyNotFoundException
+            || (ex.GetType().Namespace?.StartsWith("Usaditos2026.Shared.Excepciones") == true);
     }
 }
