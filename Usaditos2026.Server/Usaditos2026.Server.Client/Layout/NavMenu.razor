@@ -53,6 +53,20 @@
 
         <!-- Acciones del encabezado: Cuenta y Carrito -->
         <div class="nav-actions">
+            <AuthorizeView Policy="@AutorizacionConstantes.PoliticaSoloAdmin">
+                <Authorized>
+                    <a class="nav-admin-link" href="/admin/pedidos" title="Panel de Administración">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <rect x="3" y="3" width="7" height="7"></rect>
+                            <rect x="14" y="3" width="7" height="7"></rect>
+                            <rect x="14" y="14" width="7" height="7"></rect>
+                            <rect x="3" y="14" width="7" height="7"></rect>
+                        </svg>
+                        <span class="d-none d-md-inline">Administración</span>
+                    </a>
+                </Authorized>
+            </AuthorizeView>
+
             <AuthorizeView>
                 <Authorized Context="auth">
                     <!-- Menú desplegable para usuario autenticado (details/summary puro para SSR e InteractiveServer) -->
@@ -95,18 +109,19 @@
                                 <span>Mis pedidos</span>
                             </a>
 
-                            @if (_esAdmin)
-                            {
-                                <a class="dropdown-item-link admin-highlight" href="/admin/pedidos" role="menuitem">
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                        <rect x="3" y="3" width="7" height="7"></rect>
-                                        <rect x="14" y="3" width="7" height="7"></rect>
-                                        <rect x="14" y="14" width="7" height="7"></rect>
-                                        <rect x="3" y="14" width="7" height="7"></rect>
-                                    </svg>
-                                    <span>Administración</span>
-                                </a>
-                            }
+                            <AuthorizeView Policy="@AutorizacionConstantes.PoliticaSoloAdmin">
+                                <Authorized>
+                                    <a class="dropdown-item-link admin-highlight" href="/admin/pedidos" role="menuitem">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                            <rect x="3" y="3" width="7" height="7"></rect>
+                                            <rect x="14" y="3" width="7" height="7"></rect>
+                                            <rect x="14" y="14" width="7" height="7"></rect>
+                                            <rect x="3" y="14" width="7" height="7"></rect>
+                                        </svg>
+                                        <span>Administración</span>
+                                    </a>
+                                </Authorized>
+                            </AuthorizeView>
 
                             <div class="dropdown-separator" role="separator"></div>
 

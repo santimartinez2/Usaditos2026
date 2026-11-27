@@ -1,0 +1,494 @@
+/* Estilos de Detalle de Pedido Admin */
+.admin-detalle-page {
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+/* Enlace Volver */
+.btn-volver-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    color: var(--brand-primary);
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: color 0.15s ease;
+}
+
+.btn-volver-link:hover {
+    color: var(--brand-primary-hover);
+    text-decoration: underline;
+}
+
+/* Banner de Concurrencia Optimista */
+.alert-concurrencia {
+    background-color: #FFF3CD;
+    border: 1px solid #FFE69C;
+    color: #664D03;
+}
+
+.concurrencia-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background-color: rgba(255, 210, 63, 0.4);
+    color: #855B00;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.text-concurrencia-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #664D03;
+}
+
+.text-concurrencia-desc {
+    font-size: 0.8125rem;
+    color: #855B00;
+}
+
+.btn-recargar-concurrencia {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    background-color: #855B00;
+    color: #FFFFFF;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    border: none;
+    transition: background-color 0.15s ease;
+}
+
+.btn-recargar-concurrencia:hover {
+    background-color: #664D03;
+    color: #FFFFFF;
+}
+
+/* Encabezado del Pedido */
+.pedido-header-card {
+    background-color: #FFFFFF;
+    border: 1px solid var(--border-soft);
+    box-shadow: 0 2px 10px rgba(20, 52, 43, 0.03);
+}
+
+.pedido-id-title {
+    font-size: 1.85rem;
+    font-weight: 700;
+    color: var(--text-main);
+    letter-spacing: -0.02em;
+}
+
+.pedido-date-info {
+    font-size: 0.875rem;
+}
+
+.quick-totals-badge {
+    background-color: #F8F6F0;
+    padding: 0.75rem 1.25rem;
+    border-radius: 12px;
+    border: 1px solid var(--border-soft);
+}
+
+.quick-totals-divider {
+    width: 1px;
+    height: 36px;
+    background-color: var(--border-soft);
+}
+
+.quick-total-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.quick-total-items {
+    font-size: 1.15rem;
+    font-weight: 700;
+}
+
+.quick-total-monto {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+/* Modal / Banner de Cancelación */
+.cancel-modal-banner {
+    background-color: #FFFFFF;
+    border-left: 5px solid var(--color-error);
+    border-top: 1px solid rgba(200, 69, 58, 0.3);
+    border-right: 1px solid rgba(200, 69, 58, 0.3);
+    border-bottom: 1px solid rgba(200, 69, 58, 0.3);
+}
+
+.cancel-warn-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background-color: #FCE8E6;
+    color: var(--color-error);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.cancel-warn-tag {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-error);
+}
+
+.cancel-warn-text {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+
+.btn-cancel-confirm {
+    font-weight: 600;
+    border-radius: 10px;
+    padding: 0.55rem 1.15rem;
+}
+
+/* Tarjetas Generales */
+.admin-card {
+    background-color: #FFFFFF;
+    border: 1px solid var(--border-soft);
+    box-shadow: 0 2px 10px rgba(20, 52, 43, 0.03);
+}
+
+.card-icon-wrap {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background-color: var(--brand-primary-soft);
+    color: var(--brand-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.card-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+/* Bloques de información interna */
+.info-block {
+    background-color: #FAF8F2;
+    border: 1px solid rgba(232, 226, 207, 0.5);
+    display: flex;
+    flex-direction: column;
+}
+
+.info-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 0.25rem;
+}
+
+.info-value {
+    font-size: 0.95rem;
+    color: var(--text-main);
+    word-break: break-word;
+}
+
+/* Nota especial del cliente */
+.customer-note-box {
+    background-color: #FFF7EE;
+    border: 1px solid #FFE2C2;
+}
+
+.text-accent-orange {
+    color: var(--brand-accent-orange);
+}
+
+.note-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.note-text {
+    font-size: 1.05rem;
+    font-style: italic;
+    color: var(--text-main);
+    padding-left: 0.5rem;
+    border-left: 3px solid var(--brand-accent-orange);
+}
+
+/* Lista de prendas */
+.item-row {
+    background-color: #FAF8F2;
+    border: 1px solid rgba(232, 226, 207, 0.6);
+    transition: background-color 0.15s ease;
+}
+
+.item-row:hover {
+    background-color: #F3EFE6;
+}
+
+.item-thumb-wrap {
+    width: 64px;
+    height: 64px;
+    border-radius: 10px;
+    overflow: hidden;
+    background-color: #E8E2CF;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.item-thumb-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.item-thumb-placeholder {
+    color: var(--text-muted);
+}
+
+.item-talle-pill {
+    display: inline-block;
+    padding: 0.15rem 0.5rem;
+    border-radius: 9999px;
+    background-color: #E8E2CF;
+    color: var(--text-main);
+    font-size: 0.7rem;
+    font-weight: 700;
+    align-self: flex-start;
+}
+
+.item-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-main);
+    line-height: 1.25;
+}
+
+.item-unit-price {
+    font-size: 0.8125rem;
+}
+
+.item-subtotal {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--brand-primary);
+    white-space: nowrap;
+}
+
+/* Pie de resumen del pedido */
+.order-summary-footer {
+    background-color: #F8F6F0;
+    border: 1px solid var(--border-soft);
+}
+
+.summary-total-label {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+.summary-total-monto {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--brand-primary);
+}
+
+/* Panel de Acciones (Columna Derecha) */
+.sticky-action-card {
+    position: sticky;
+    top: 90px;
+}
+
+.action-btn-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.btn-action {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.85rem 1rem;
+    border-radius: 12px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    transition: all 0.15s ease-in-out;
+    border: none;
+}
+
+.btn-marcar-pagado {
+    background-color: var(--brand-primary);
+    color: #FFFFFF;
+}
+
+.btn-marcar-pagado:hover:not(:disabled) {
+    background-color: var(--brand-primary-hover);
+    color: #FFFFFF;
+}
+
+.btn-marcar-listo {
+    background-color: var(--brand-primary-soft);
+    color: var(--brand-primary);
+}
+
+.btn-marcar-listo:hover:not(:disabled) {
+    background-color: #BBEBD7;
+    color: var(--brand-primary-hover);
+}
+
+.btn-marcar-entregado {
+    background-color: var(--text-main);
+    color: #FFFFFF;
+}
+
+.btn-marcar-entregado:hover:not(:disabled) {
+    background-color: #0B7A5E;
+    color: #FFFFFF;
+}
+
+.btn-cancelar-pedido {
+    background-color: transparent;
+    color: var(--color-error);
+    border: 1px solid rgba(200, 69, 58, 0.4);
+}
+
+.btn-cancelar-pedido:hover:not(:disabled) {
+    background-color: #FCE8E6;
+    color: var(--color-error);
+    border-color: var(--color-error);
+}
+
+.btn-action:disabled {
+    background-color: #EAE6DB !important;
+    color: var(--text-muted) !important;
+    border: 1px solid transparent !important;
+    opacity: 0.65;
+    cursor: not-allowed;
+}
+
+.action-hint {
+    font-size: 0.775rem;
+    line-height: 1.25;
+}
+
+.action-divider {
+    height: 1px;
+    background-color: var(--border-soft);
+}
+
+.action-footer-note {
+    background-color: #FAF8F2;
+    border: 1px solid rgba(232, 226, 207, 0.5);
+}
+
+/* Chips de Estado */
+.chip-estado {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.25rem 0.65rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.chip-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+}
+
+.chip-confirmado {
+    background-color: var(--brand-primary-soft);
+    color: var(--brand-primary);
+}
+.chip-confirmado .chip-dot {
+    background-color: var(--brand-primary);
+}
+
+.chip-listo {
+    background-color: #FFF4D2;
+    color: #745C00;
+}
+.chip-listo .chip-dot {
+    background-color: #FFD23F;
+}
+
+.chip-entregado {
+    background-color: var(--brand-primary);
+    color: #FFFFFF;
+}
+.chip-entregado .chip-dot {
+    background-color: #A7FFDD;
+}
+
+.chip-cancelado {
+    background-color: #FCE8E6;
+    color: var(--color-error);
+}
+.chip-cancelado .chip-dot {
+    background-color: var(--color-error);
+}
+
+.chip-pago {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.2rem 0.6rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.pago-pagado {
+    background-color: #D6F2E7;
+    color: var(--brand-primary);
+    border: 1px solid #B4E6D2;
+}
+
+.pago-pendiente {
+    background-color: #FFEAD9;
+    color: var(--brand-accent-orange);
+    border: 1px solid #FFD1B3;
+}
+
+.pago-rechazado {
+    background-color: #FCE8E6;
+    color: var(--color-error);
+    border: 1px solid #F5C6C2;
+}
+
+/* Estado vacío */
+.empty-box {
+    background-color: #FFFFFF;
+    border: 1px dashed var(--border-soft);
+    border-radius: 16px;
+    padding: 3rem 1.5rem;
+}
+
+.empty-icon-wrap {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background-color: #F8F6F0;
+    color: var(--text-muted);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}

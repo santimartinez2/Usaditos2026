@@ -1,0 +1,918 @@
+@page "/admin/pedidos/{id:int}"
+@rendermode InteractiveServer
+@attribute [Authorize(Policy = AutorizacionConstantes.PoliticaSoloAdmin)]
+@layout AdminLayout
+@using System.Globalization
+@using Usaditos2026.Servicios.Interfaces
+@using Usaditos2026.Shared.Constantes
+@using Usaditos2026.Shared.DTOs
+@using Usaditos2026.Shared.Excepciones
+@using Usaditos2026.Shared.Utilidades
+@inject IAdminPedidoServicio AdminPedidoServicio
+@inject ITiendaServicio TiendaServicio
+@inject ICatalogoServicio CatalogoServicio
+@inject IAdminCatalogoServicio AdminCatalogoServicio
+@inject NavigationManager Navigation
+
+<PageTitle>@( _pedido is not null ? $"Pedido #{_pedido.Id} · Panel de Administración | Usaditos Hernando" : "Detalle de pedido · Admin" )</PageTitle>
+
+<div class="admin-detalle-page">
+    @if (_cargando)
+    {
+        <div class="loading-state text-center py-5" role="status" aria-live="polite">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Cargando pedido...</span>
+            </div>
+            <p class="mt-3 text-muted">Cargando los datos del pedido #@Id...</p>
+        </div>
+    }
+    else if (_noEncontrado || _pedido is null)
+    {
+        <!-- Estado: Pedido No Encontrado -->
+        <div class="empty-box text-center py-5">
+            <div class="empty-icon-wrap mb-3" aria-hidden="true">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="8" x2="12" y2="12"></line>
+                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+            </div>
+            <h2 class="font-serif">Pedido no encontrado</h2>
+            <p class="text-muted max-w-md mx-auto mb-4">
+                El pedido solicitado (#@Id) no existe o fue eliminado del sistema.
+            </p>
+            <a href="/admin/pedidos" class="btn btn-primary">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="me-1">
+                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                    <polyline points="12 19 5 12 12 5"></polyline>
+                </svg>
+                <span>Volver a Pedidos</span>
+            </a>
+        </div>
+    }
+    else
+    {
+        <!-- Navegación de retorno -->
+        <div class="d-flex align-items-center mb-3">
+            <a href="/admin/pedidos" class="btn-volver-link">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                    <polyline points="12 19 5 12 12 5"></polyline>
+                </svg>
+                <span>Volver a la lista de pedidos</span>
+            </a>
+        </div>
+
+        <!-- Alerta de Conflicto de Concurrencia Optimista -->
+        @if (_errorConcurrencia)
+        {
+            <div class="alert alert-concurrencia mb-4 p-3 rounded-3 shadow-sm d-flex flex-column flex-sm-row align-items-start align-items-sm-center justify-content-between gap-3" role="alert">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="concurrencia-icon" aria-hidden="true">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="23 4 23 10 17 10"></polyline>
+                            <polyline points="1 20 1 14 7 14"></polyline>
+                            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <strong class="d-block text-concurrencia-title">El pedido fue modificado, recargá</strong>
+                        <span class="text-concurrencia-desc">Los datos del pedido cambiaron en el servidor mientras estabas en esta pantalla.</span>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-recargar-concurrencia shrink-0" @onclick="() => CargarPedidoAsync(Id)">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="me-1">
+                        <polyline points="23 4 23 10 17 10"></polyline>
+                        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                    </svg>
+                    <span>Recargar pedido</span>
+                </button>
+            </div>
+        }
+
+        <!-- Mensajes de feedback -->
+        @if (!string.IsNullOrWhiteSpace(_mensajeExito))
+        {
+            <div class="alert alert-success alert-dismissible fade show d-flex align-items-center gap-2 mb-4" role="alert">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                </svg>
+                <div class="flex-grow-1">@_mensajeExito</div>
+                <button type="button" class="btn-close" aria-label="Cerrar aviso" @onclick="() => _mensajeExito = null"></button>
+            </div>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(_mensajeError))
+        {
+            <div class="alert alert-danger alert-dismissible fade show d-flex align-items-center gap-2 mb-4" role="alert">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="8" x2="12" y2="12"></line>
+                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+                <div class="flex-grow-1">@_mensajeError</div>
+                <button type="button" class="btn-close" aria-label="Cerrar aviso" @onclick="() => _mensajeError = null"></button>
+            </div>
+        }
+
+        <!-- Encabezado del Pedido -->
+        <header class="pedido-header-card mb-4 p-4 rounded-4">
+            <div class="d-flex flex-column flex-md-row md:items-center justify-content-between gap-3">
+                <div class="d-flex flex-column gap-1">
+                    <div class="d-flex align-items-center flex-wrap gap-2">
+                        <h1 class="pedido-id-title font-serif mb-0">Pedido #@_pedido.Id</h1>
+                        <span class="chip-estado @ObtenerClaseChipEstado(_pedido.Estado)">
+                            <span class="chip-dot" aria-hidden="true"></span>
+                            <span>@ObtenerTextoEstado(_pedido.Estado)</span>
+                        </span>
+                        <span class="chip-pago @ObtenerClaseChipPago(_pedido.EstadoPago)">
+                            <span>@ObtenerTextoPago(_pedido.EstadoPago)</span>
+                        </span>
+                    </div>
+                    <p class="pedido-date-info text-muted mb-0">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="me-1">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="16" y1="2" x2="16" y2="6"></line>
+                            <line x1="8" y1="2" x2="8" y2="6"></line>
+                            <line x1="3" y1="10" x2="21" y2="10"></line>
+                        </svg>
+                        <span>Realizado el @FormatearFechaCompleta(_pedido.Fecha) · Hernando, Córdoba</span>
+                    </p>
+                </div>
+
+                <!-- Resumen rápido de totales -->
+                <div class="quick-totals-badge d-flex align-items-center gap-3">
+                    <div class="d-flex flex-column">
+                        <span class="quick-total-label text-muted">Prendas</span>
+                        <span class="quick-total-items text-primary font-serif">@_pedido.Items.Sum(i => i.Cantidad) unid.</span>
+                    </div>
+                    <div class="quick-totals-divider" aria-hidden="true"></div>
+                    <div class="d-flex flex-column">
+                        <span class="quick-total-label text-muted">Total a cobrar</span>
+                        <span class="quick-total-monto font-serif">@_pedido.Total.ToString("C", _culturaAr)</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Cuadro / Modal de Confirmación de Cancelación -->
+        @if (_mostrarModalCancelacion)
+        {
+            <div class="cancel-modal-banner mb-4 p-4 rounded-4 shadow-sm" role="dialog" aria-modal="true" aria-labelledby="modal-cancel-title">
+                <div class="d-flex align-items-start gap-3 mb-3">
+                    <div class="cancel-warn-icon" aria-hidden="true">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                            <line x1="12" y1="9" x2="12" y2="13"></line>
+                            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                        </svg>
+                    </div>
+                    <div>
+                        <span class="cancel-warn-tag">Confirmación requerida</span>
+                        <h3 id="modal-cancel-title" class="font-serif mb-1">¿Seguro que querés cancelar este pedido?</h3>
+                        <p class="cancel-warn-text mb-0">
+                            ¿Seguro que querés cancelar este pedido? Se va a devolver el stock automáticamente. Si el pedido ya estaba pagado, recordá que el reembolso se realiza de forma manual.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="d-flex flex-wrap align-items-center gap-2 pt-2">
+                    <button type="button"
+                            class="btn btn-danger btn-cancel-confirm"
+                            disabled="@_ejecutandoAccion"
+                            @onclick="ConfirmarCancelacionAsync">
+                        @if (_ejecutandoAccion)
+                        {
+                            <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                            <span>Cancelando...</span>
+                        }
+                        else
+                        {
+                            <span>Sí, cancelar pedido y devolver stock</span>
+                        }
+                    </button>
+                    <button type="button"
+                            class="btn btn-outline-secondary"
+                            disabled="@_ejecutandoAccion"
+                            @onclick="() => _mostrarModalCancelacion = false">
+                        Volver / No cancelar
+                    </button>
+                </div>
+            </div>
+        }
+
+        <!-- Grilla Principal: 2 Columnas (8 cols datos, 4 cols acciones) -->
+        <div class="row g-4 items-start">
+            <!-- Columna Izquierda: Detalles del pedido -->
+            <div class="col-12 col-lg-8 d-flex flex-column gap-4">
+                <!-- 1. Card: Datos del cliente -->
+                <section class="admin-card p-4 rounded-4" aria-labelledby="card-cliente-title">
+                    <div class="d-flex align-items-center gap-2 mb-3">
+                        <div class="card-icon-wrap" aria-hidden="true">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="12" cy="7" r="4"></circle>
+                            </svg>
+                        </div>
+                        <h2 id="card-cliente-title" class="card-title font-serif mb-0">Datos del cliente</h2>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-12 col-sm-4">
+                            <div class="info-block p-3 rounded-3">
+                                <span class="info-label text-muted">Nombre completo</span>
+                                <span class="info-value font-semibold">@_pedido.ClienteNombre</span>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-4">
+                            <div class="info-block p-3 rounded-3">
+                                <span class="info-label text-muted">Correo electrónico</span>
+                                <a href="mailto:@_pedido.ClienteEmail" class="info-value text-primary text-truncate d-block" title="@_pedido.ClienteEmail">
+                                    @_pedido.ClienteEmail
+                                </a>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-4">
+                            <div class="info-block p-3 rounded-3">
+                                <span class="info-label text-muted">Teléfono de contacto</span>
+                                <span class="info-value">@_pedido.TelefonoContacto</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 2. Card: Entrega y Pago -->
+                <section class="admin-card p-4 rounded-4" aria-labelledby="card-entrega-title">
+                    <div class="d-flex align-items-center gap-2 mb-3">
+                        <div class="card-icon-wrap" aria-hidden="true">
+                            @if (_pedido.TipoEntrega == TipoEntrega.Retiro)
+                            {
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                                    <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                                </svg>
+                            }
+                            else
+                            {
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="1" y="3" width="15" height="13"></rect>
+                                    <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon>
+                                    <circle cx="5.5" cy="18.5" r="2.5"></circle>
+                                    <circle cx="18.5" cy="18.5" r="2.5"></circle>
+                                </svg>
+                            }
+                        </div>
+                        <h2 id="card-entrega-title" class="card-title font-serif mb-0">Modalidad de entrega y pago</h2>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-12 col-sm-6">
+                            <div class="info-block p-3 rounded-3 h-100">
+                                <span class="info-label text-muted">Tipo de entrega</span>
+                                <div class="d-flex align-items-center gap-1.5 mt-1">
+                                    <span class="info-value font-semibold">
+                                        @(_pedido.TipoEntrega == TipoEntrega.Retiro ? "Retiro en el local" : "Envío a domicilio")
+                                    </span>
+                                </div>
+                                @if (_pedido.TipoEntrega == TipoEntrega.Retiro)
+                                {
+                                    <p class="text-muted small mt-1 mb-0">
+                                        @(!string.IsNullOrWhiteSpace(_tiendaInfo?.Direccion) ? _tiendaInfo.Direccion : "Local Hernando")
+                                        @(!string.IsNullOrWhiteSpace(_tiendaInfo?.Horario) ? $"({_tiendaInfo.Horario})" : "")
+                                    </p>
+                                }
+                                else
+                                {
+                                    <p class="text-main small mt-1 mb-0">
+                                        <strong>Dirección:</strong> @_pedido.DireccionEnvio
+                                    </p>
+                                }
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-sm-6">
+                            <div class="info-block p-3 rounded-3 h-100">
+                                <span class="info-label text-muted">Método de pago</span>
+                                <div class="d-flex align-items-center gap-1.5 mt-1">
+                                    <span class="info-value font-semibold">@ObtenerNombreMetodoPago(_pedido.MetodoPago)</span>
+                                </div>
+                                <p class="small mt-1 mb-0 @(_pedido.EstadoPago == EstadoPago.Pagado ? "text-success font-semibold" : "text-muted")">
+                                    @if (_pedido.EstadoPago == EstadoPago.Pagado)
+                                    {
+                                        <span>
+                                            ✓ Pagado
+                                            @if (_pedido.FechaPago.HasValue)
+                                            {
+                                                <span> el @FormatearFechaCompleta(_pedido.FechaPago.Value)</span>
+                                            }
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span>Pago pendiente de cobro</span>
+                                    }
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Nota especial del cliente (si existe) -->
+                    @if (!string.IsNullOrWhiteSpace(_pedido.NotaCliente))
+                    {
+                        <div class="customer-note-box mt-3 p-3 rounded-3">
+                            <div class="d-flex align-items-center gap-1.5 text-accent-orange mb-1">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                                </svg>
+                                <span class="note-label">Nota especial del cliente</span>
+                            </div>
+                            <blockquote class="note-text font-serif mb-0">
+                                “@_pedido.NotaCliente”
+                            </blockquote>
+                        </div>
+                    }
+                </section>
+
+                <!-- 3. Card: Prendas del Pedido -->
+                <section class="admin-card p-4 rounded-4" aria-labelledby="card-prendas-title">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="card-icon-wrap" aria-hidden="true">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M20.38 3.46L16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"></path>
+                                </svg>
+                            </div>
+                            <h2 id="card-prendas-title" class="card-title font-serif mb-0">Prendas del pedido</h2>
+                        </div>
+                        <span class="text-muted small">@_pedido.Items.Sum(i => i.Cantidad) prendas</span>
+                    </div>
+
+                    <div class="items-list d-flex flex-column gap-3">
+                        @foreach (var item in _pedido.Items)
+                        {
+                            <div class="item-row p-3 rounded-3 d-flex flex-column flex-sm-row align-items-start align-items-sm-center justify-content-between gap-3">
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="item-thumb-wrap" aria-hidden="true">
+                                        @if (_imagenesMap.TryGetValue(item.ProductoId, out var imgUrl) && !string.IsNullOrWhiteSpace(imgUrl))
+                                        {
+                                            <img src="@imgUrl" alt="" class="item-thumb-img" />
+                                        }
+                                        else
+                                        {
+                                            <div class="item-thumb-placeholder">
+                                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                                                    <polyline points="21 15 16 10 5 21"></polyline>
+                                                </svg>
+                                            </div>
+                                        }
+                                    </div>
+                                    <div class="d-flex flex-column min-w-0">
+                                        @if (_tallesMap.TryGetValue(item.ProductoId, out var talle) && !string.IsNullOrWhiteSpace(talle))
+                                        {
+                                            <span class="item-talle-pill mb-1">Talle @talle</span>
+                                        }
+                                        <h3 class="item-title font-serif mb-0">@item.NombreProducto</h3>
+                                        <span class="item-unit-price text-muted small">
+                                            @item.Cantidad x @item.PrecioUnitario.ToString("C", _culturaAr)
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div class="text-end align-self-end align-self-sm-center">
+                                    <span class="item-subtotal font-serif">@item.Subtotal.ToString("C", _culturaAr)</span>
+                                </div>
+                            </div>
+                        }
+                    </div>
+
+                    <!-- Total de Prendas -->
+                    <div class="order-summary-footer mt-4 p-3 rounded-3 d-flex align-items-center justify-content-between">
+                        <div class="d-flex flex-column">
+                            <span class="summary-total-label font-serif">Total final</span>
+                            <span class="text-muted small">Precios en Pesos Argentinos (ARS)</span>
+                        </div>
+                        <span class="summary-total-monto font-serif">@_pedido.Total.ToString("C", _culturaAr)</span>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Columna Derecha: Panel de Acciones (Sticky) -->
+            <div class="col-12 col-lg-4">
+                <section class="admin-card action-panel p-4 rounded-4 sticky-action-card" aria-labelledby="card-acciones-title">
+                    <div class="d-flex align-items-center gap-2 mb-3">
+                        <div class="card-icon-wrap" aria-hidden="true">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="3"></circle>
+                                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <h2 id="card-acciones-title" class="card-title font-serif mb-0">Acciones sobre el pedido</h2>
+                            <span class="text-muted small">Control del flujo del pedido</span>
+                        </div>
+                    </div>
+
+                    <div class="d-flex flex-column gap-3">
+                        <!-- Acción 1: Marcar como pagado -->
+                        <div class="action-btn-group">
+                            <button type="button"
+                                    class="btn btn-action btn-marcar-pagado w-100"
+                                    disabled="@(!_puedeMarcarPagado || _ejecutandoAccion)"
+                                    @onclick="MarcarComoPagadoAsync">
+                                <span class="d-flex align-items-center gap-2">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <rect x="2" y="5" width="20" height="14" rx="2"></rect>
+                                        <line x1="2" y1="10" x2="22" y2="10"></line>
+                                    </svg>
+                                    <span>Marcar como pagado</span>
+                                </span>
+                                @if (_pedido.EstadoPago == EstadoPago.Pagado)
+                                {
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <polyline points="20 6 9 17 4 12"></polyline>
+                                    </svg>
+                                }
+                            </button>
+                            <span class="action-hint text-muted small mt-1 d-block px-1">
+                                @_explicacionMarcarPagado
+                            </span>
+                        </div>
+
+                        <!-- Acción 2: Marcar listo para retirar -->
+                        <div class="action-btn-group">
+                            <button type="button"
+                                    class="btn btn-action btn-marcar-listo w-100"
+                                    disabled="@(!_puedeMarcarListo || _ejecutandoAccion)"
+                                    @onclick="MarcarListoParaRetirarAsync">
+                                <span class="d-flex align-items-center gap-2">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <polyline points="21 8 21 21 3 21 3 8"></polyline>
+                                        <rect x="1" y="3" width="22" height="5"></rect>
+                                        <line x1="10" y1="12" x2="14" y2="12"></line>
+                                    </svg>
+                                    <span>Marcar listo para retirar</span>
+                                </span>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                    <polyline points="12 5 19 12 12 19"></polyline>
+                                </svg>
+                            </button>
+                            <span class="action-hint text-muted small mt-1 d-block px-1">
+                                @_explicacionMarcarListo
+                            </span>
+                        </div>
+
+                        <!-- Acción 3: Marcar entregado -->
+                        <div class="action-btn-group">
+                            <button type="button"
+                                    class="btn btn-action btn-marcar-entregado w-100"
+                                    disabled="@(!_puedeMarcarEntregado || _ejecutandoAccion)"
+                                    @onclick="MarcarEntregadoAsync">
+                                <span class="d-flex align-items-center gap-2">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+                                        <line x1="3" y1="6" x2="21" y2="6"></line>
+                                        <path d="M16 10a4 4 0 0 1-8 0"></path>
+                                    </svg>
+                                    <span>Marcar entregado</span>
+                                </span>
+                                @if (!_puedeMarcarEntregado)
+                                {
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                                    </svg>
+                                }
+                            </button>
+                            <span class="action-hint text-muted small mt-1 d-block px-1">
+                                @_explicacionMarcarEntregado
+                            </span>
+                        </div>
+
+                        <div class="action-divider my-1" aria-hidden="true"></div>
+
+                        <!-- Acción 4: Cancelar pedido -->
+                        <div class="action-btn-group">
+                            <button type="button"
+                                    class="btn btn-action btn-cancelar-pedido w-100"
+                                    disabled="@(!_puedeCancelar || _ejecutandoAccion)"
+                                    @onclick="() => _mostrarModalCancelacion = true">
+                                <span class="d-flex align-items-center gap-2">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <line x1="15" y1="9" x2="9" y2="15"></line>
+                                        <line x1="9" y1="9" x2="15" y2="15"></line>
+                                    </svg>
+                                    <span>Cancelar pedido</span>
+                                </span>
+                            </button>
+                            <span class="action-hint text-muted small mt-1 d-block px-1">
+                                @_explicacionCancelar
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="action-footer-note mt-4 p-2.5 rounded-3 d-flex align-items-start gap-2">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="shrink-0 mt-0.5 text-muted">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="16" x2="12" y2="12"></line>
+                            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                        </svg>
+                        <span class="small text-muted">
+                            Cualquier cambio de estado impacta en el stock disponible de la tienda.
+                        </span>
+                    </div>
+                </section>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private PedidoAdminDto? _pedido;
+    private byte[] _rowVersion = Array.Empty<byte>();
+    private TiendaInfoDto? _tiendaInfo;
+    private Dictionary<int, string?> _imagenesMap = new();
+    private Dictionary<int, string> _tallesMap = new();
+
+    private bool _cargando = true;
+    private bool _noEncontrado;
+    private bool _errorConcurrencia;
+    private bool _mostrarModalCancelacion;
+    private bool _ejecutandoAccion;
+
+    private string? _mensajeExito;
+    private string? _mensajeError;
+
+    private readonly CultureInfo _culturaAr = new("es-AR");
+
+    // Reglas de negocio para habilitación de botones
+    private bool _puedeMarcarPagado => _pedido is not null &&
+                                       _pedido.Estado != PedidoConstantes.EstadoCancelado &&
+                                       _pedido.Estado != PedidoConstantes.EstadoEntregado &&
+                                       _pedido.EstadoPago != EstadoPago.Pagado;
+
+    private string _explicacionMarcarPagado
+    {
+        get
+        {
+            if (_pedido is null) return string.Empty;
+            if (_pedido.Estado == PedidoConstantes.EstadoCancelado) return "El pedido ya fue cancelado.";
+            if (_pedido.Estado == PedidoConstantes.EstadoEntregado) return "El pedido ya fue entregado.";
+            if (_pedido.EstadoPago == EstadoPago.Pagado) return "El pedido ya está marcado como pagado.";
+            return "Registrá la recepción del pago del cliente.";
+        }
+    }
+
+    private bool _puedeMarcarListo => _pedido is not null &&
+                                      _pedido.Estado == PedidoConstantes.EstadoConfirmado;
+
+    private string _explicacionMarcarListo
+    {
+        get
+        {
+            if (_pedido is null) return string.Empty;
+            if (_pedido.Estado == PedidoConstantes.EstadoCancelado) return "El pedido ya fue cancelado.";
+            if (_pedido.Estado == PedidoConstantes.EstadoListoParaRetirar) return "El pedido ya está listo para retirar.";
+            if (_pedido.Estado == PedidoConstantes.EstadoEntregado) return "El pedido ya fue entregado.";
+            return "Avisale al cliente que su paquete está preparado.";
+        }
+    }
+
+    private bool _puedeMarcarEntregado => _pedido is not null &&
+                                          _pedido.Estado == PedidoConstantes.EstadoListoParaRetirar &&
+                                          _pedido.EstadoPago == EstadoPago.Pagado;
+
+    private string _explicacionMarcarEntregado
+    {
+        get
+        {
+            if (_pedido is null) return string.Empty;
+            if (_pedido.Estado == PedidoConstantes.EstadoCancelado) return "El pedido ya fue cancelado.";
+            if (_pedido.Estado == PedidoConstantes.EstadoEntregado) return "El pedido ya fue entregado.";
+            if (_pedido.Estado == PedidoConstantes.EstadoConfirmado) return "Primero marcá el pedido como listo para retirar.";
+            if (_pedido.EstadoPago != EstadoPago.Pagado) return "Para marcar como entregado, primero registrá el pago.";
+            return "Confirmá la entrega de las prendas al cliente.";
+        }
+    }
+
+    private bool _puedeCancelar => _pedido is not null &&
+                                   (_pedido.Estado == PedidoConstantes.EstadoConfirmado ||
+                                    _pedido.Estado == PedidoConstantes.EstadoListoParaRetirar);
+
+    private string _explicacionCancelar
+    {
+        get
+        {
+            if (_pedido is null) return string.Empty;
+            if (_pedido.Estado == PedidoConstantes.EstadoCancelado) return "El pedido ya fue cancelado.";
+            if (_pedido.Estado == PedidoConstantes.EstadoEntregado) return "No se puede cancelar un pedido que ya fue entregado.";
+            return "Devuelve el stock de las prendas al catálogo.";
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        _tiendaInfo = TiendaServicio.ObtenerInfo();
+        await CargarPedidoAsync(Id);
+    }
+
+    private async Task CargarPedidoAsync(int pedidoId)
+    {
+        try
+        {
+            _cargando = true;
+            _noEncontrado = false;
+            _errorConcurrencia = false;
+            _mensajeError = null;
+
+            _pedido = await AdminPedidoServicio.ObtenerPedidoAsync(pedidoId);
+            _rowVersion = _pedido.RowVersion;
+
+            await CargarImagenesYTallesAsync();
+        }
+        catch (KeyNotFoundException)
+        {
+            _noEncontrado = true;
+            _pedido = null;
+        }
+        catch (Exception ex)
+        {
+            _mensajeError = "No se pudo cargar el pedido: " + ex.Message;
+        }
+        finally
+        {
+            _cargando = false;
+        }
+    }
+
+    private async Task CargarImagenesYTallesAsync()
+    {
+        if (_pedido is null || _pedido.Items.Count == 0) return;
+
+        try
+        {
+            var ids = _pedido.Items.Select(i => i.ProductoId).Distinct().ToList();
+            _imagenesMap = await CatalogoServicio.ObtenerImagenesAsync(ids);
+        }
+        catch
+        {
+            _imagenesMap = new();
+        }
+
+        try
+        {
+            _tallesMap = new();
+            foreach (var item in _pedido.Items)
+            {
+                if (!_tallesMap.ContainsKey(item.ProductoId))
+                {
+                    try
+                    {
+                        var prod = await AdminCatalogoServicio.ObtenerProductoAsync(item.ProductoId);
+                        if (!string.IsNullOrWhiteSpace(prod.Talle))
+                        {
+                            _tallesMap[item.ProductoId] = prod.Talle;
+                        }
+                    }
+                    catch
+                    {
+                        // Si el producto no se encuentra, omitir talle limpiamente
+                    }
+                }
+            }
+        }
+        catch
+        {
+            _tallesMap = new();
+        }
+    }
+
+    private async Task MarcarComoPagadoAsync()
+    {
+        if (!_puedeMarcarPagado || _ejecutandoAccion || _pedido is null) return;
+
+        try
+        {
+            _ejecutandoAccion = true;
+            _mensajeError = null;
+            _mensajeExito = null;
+
+            var request = new MarcarPagoRequest
+            {
+                EstadoPago = EstadoPago.Pagado,
+                RowVersion = _rowVersion
+            };
+
+            var res = await AdminPedidoServicio.MarcarPagoAsync(_pedido.Id, request);
+            _pedido = res;
+            _rowVersion = res.RowVersion;
+            _mensajeExito = "El pedido fue marcado como pagado exitosamente.";
+        }
+        catch (PedidoModificadoException)
+        {
+            _errorConcurrencia = true;
+        }
+        catch (EstadoPedidoInvalidoException ex)
+        {
+            _mensajeError = ex.Message;
+        }
+        catch (Exception ex)
+        {
+            _mensajeError = "Ocurrió un error al registrar el pago: " + ex.Message;
+        }
+        finally
+        {
+            _ejecutandoAccion = false;
+        }
+    }
+
+    private async Task MarcarListoParaRetirarAsync()
+    {
+        if (!_puedeMarcarListo || _ejecutandoAccion || _pedido is null) return;
+
+        try
+        {
+            _ejecutandoAccion = true;
+            _mensajeError = null;
+            _mensajeExito = null;
+
+            var request = new CambiarEstadoPedidoRequest
+            {
+                NuevoEstado = PedidoConstantes.EstadoListoParaRetirar,
+                RowVersion = _rowVersion
+            };
+
+            var res = await AdminPedidoServicio.CambiarEstadoAsync(_pedido.Id, request);
+            _pedido = res;
+            _rowVersion = res.RowVersion;
+            _mensajeExito = "El pedido fue marcado como listo para retirar.";
+        }
+        catch (PedidoModificadoException)
+        {
+            _errorConcurrencia = true;
+        }
+        catch (EstadoPedidoInvalidoException ex)
+        {
+            _mensajeError = ex.Message;
+        }
+        catch (Exception ex)
+        {
+            _mensajeError = "Ocurrió un error al cambiar el estado: " + ex.Message;
+        }
+        finally
+        {
+            _ejecutandoAccion = false;
+        }
+    }
+
+    private async Task MarcarEntregadoAsync()
+    {
+        if (!_puedeMarcarEntregado || _ejecutandoAccion || _pedido is null) return;
+
+        try
+        {
+            _ejecutandoAccion = true;
+            _mensajeError = null;
+            _mensajeExito = null;
+
+            var request = new CambiarEstadoPedidoRequest
+            {
+                NuevoEstado = PedidoConstantes.EstadoEntregado,
+                RowVersion = _rowVersion
+            };
+
+            var res = await AdminPedidoServicio.CambiarEstadoAsync(_pedido.Id, request);
+            _pedido = res;
+            _rowVersion = res.RowVersion;
+            _mensajeExito = "El pedido fue marcado como entregado.";
+        }
+        catch (PedidoModificadoException)
+        {
+            _errorConcurrencia = true;
+        }
+        catch (EstadoPedidoInvalidoException ex)
+        {
+            _mensajeError = ex.Message;
+        }
+        catch (Exception ex)
+        {
+            _mensajeError = "Ocurrió un error al marcar como entregado: " + ex.Message;
+        }
+        finally
+        {
+            _ejecutandoAccion = false;
+        }
+    }
+
+    private async Task ConfirmarCancelacionAsync()
+    {
+        if (!_puedeCancelar || _ejecutandoAccion || _pedido is null) return;
+
+        try
+        {
+            _ejecutandoAccion = true;
+            _mensajeError = null;
+            _mensajeExito = null;
+
+            var request = new CambiarEstadoPedidoRequest
+            {
+                NuevoEstado = PedidoConstantes.EstadoCancelado,
+                RowVersion = _rowVersion
+            };
+
+            var res = await AdminPedidoServicio.CambiarEstadoAsync(_pedido.Id, request);
+            _pedido = res;
+            _rowVersion = res.RowVersion;
+            _mensajeExito = "El pedido fue cancelado y el stock fue devuelto automáticamente al catálogo.";
+            _mostrarModalCancelacion = false;
+        }
+        catch (PedidoModificadoException)
+        {
+            _errorConcurrencia = true;
+            _mostrarModalCancelacion = false;
+        }
+        catch (EstadoPedidoInvalidoException ex)
+        {
+            _mensajeError = ex.Message;
+            _mostrarModalCancelacion = false;
+        }
+        catch (Exception ex)
+        {
+            _mensajeError = "Ocurrió un error al cancelar el pedido: " + ex.Message;
+            _mostrarModalCancelacion = false;
+        }
+        finally
+        {
+            _ejecutandoAccion = false;
+        }
+    }
+
+    private string FormatearFechaCompleta(DateTime fechaUtc)
+    {
+        var zonaId = !string.IsNullOrWhiteSpace(_tiendaInfo?.ZonaHoraria)
+            ? _tiendaInfo.ZonaHoraria
+            : FechaHelper.ZonaPorDefecto;
+
+        var local = FechaHelper.UtcALocal(fechaUtc, zonaId);
+        return local.ToString("d 'de' MMMM 'de' yyyy · HH:mm", _culturaAr) + " hs";
+    }
+
+    private static string ObtenerNombreMetodoPago(MetodoPago metodo)
+    {
+        return metodo switch
+        {
+            MetodoPago.Efectivo => "Efectivo",
+            MetodoPago.Transferencia => "Transferencia bancaria",
+            _ => metodo.ToString()
+        };
+    }
+
+    private static string ObtenerTextoEstado(string estado)
+    {
+        return estado switch
+        {
+            PedidoConstantes.EstadoConfirmado => "Confirmado",
+            PedidoConstantes.EstadoListoParaRetirar => "Listo para retirar",
+            PedidoConstantes.EstadoEntregado => "Entregado",
+            PedidoConstantes.EstadoCancelado => "Cancelado",
+            _ => estado
+        };
+    }
+
+    private static string ObtenerClaseChipEstado(string estado)
+    {
+        return estado switch
+        {
+            PedidoConstantes.EstadoConfirmado => "chip-confirmado",
+            PedidoConstantes.EstadoListoParaRetirar => "chip-listo",
+            PedidoConstantes.EstadoEntregado => "chip-entregado",
+            PedidoConstantes.EstadoCancelado => "chip-cancelado",
+            _ => "chip-confirmado"
+        };
+    }
+
+    private static string ObtenerTextoPago(EstadoPago estado)
+    {
+        return estado switch
+        {
+            EstadoPago.Pagado => "Pagado",
+            _ => "Pago pendiente"
+        };
+    }
+
+    private static string ObtenerClaseChipPago(EstadoPago estado)
+    {
+        return estado switch
+        {
+            EstadoPago.Pagado => "pago-pagado",
+            _ => "pago-pendiente"
+        };
+    }
+}
