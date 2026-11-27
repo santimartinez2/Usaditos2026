@@ -189,5 +189,83 @@ a:hover, .btn-link:hover {
 }
 
 .blazor-error-boundary::after {
-    content: "Ha ocurrido un error inesperado.";
+    content: "Ocurrió un error inesperado.";
+}
+
+/* ErrorBoundary & Pantallas de Error – Paleta Selva */
+.error-boundary-card {
+    max-width: 540px;
+    background-color: #FFFFFF;
+    border: 1px solid #E8E2CF;
+    border-radius: 16px;
+    box-shadow: var(--shadow-sm);
+}
+
+.error-boundary-icon-wrapper {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 68px;
+    height: 68px;
+    border-radius: 50%;
+    background-color: #FDEDED;
+    border: 1px solid rgba(200, 69, 58, 0.15);
+}
+
+.error-boundary-title {
+    font-family: var(--font-heading);
+    color: #14342B;
+    font-size: 1.75rem;
+    font-weight: 700;
+}
+
+.error-boundary-text {
+    color: #4F6B62;
+    font-size: 1rem;
+    line-height: 1.55;
+}
+
+/* Barra de error crítico de Blazor (#blazor-error-ui) */
+#blazor-error-ui {
+    background-color: #FFFFFF;
+    color: var(--text-main);
+    border-top: 3px solid var(--color-error);
+    bottom: 0;
+    box-shadow: var(--shadow-lg);
+    display: none;
+    left: 0;
+    padding: 0.85rem 1.5rem;
+    position: fixed;
+    width: 100%;
+    z-index: 10000;
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    box-sizing: border-box;
+}
+
+#blazor-error-ui .reload {
+    color: var(--brand-primary);
+    font-weight: 600;
+    margin-left: 0.75rem;
+    text-decoration: underline;
+}
+
+#blazor-error-ui .reload:hover {
+    color: var(--brand-primary-hover);
+}
+
+#blazor-error-ui .dismiss {
+    cursor: pointer;
+    position: absolute;
+    right: 1.25rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 1.15rem;
+    color: var(--text-muted);
+    padding: 0.25rem 0.5rem;
+    line-height: 1;
+}
+
+#blazor-error-ui .dismiss:hover {
+    color: var(--text-main);
 }

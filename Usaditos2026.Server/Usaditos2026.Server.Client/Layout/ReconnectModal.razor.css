@@ -90,14 +90,15 @@
 
 #components-reconnect-modal button {
     border: 0;
-    background-color: #6b9ed2;
+    background-color: #0B7A5E;
     color: white;
-    padding: 4px 24px;
-    border-radius: 4px;
+    padding: 6px 24px;
+    border-radius: 8px;
+    font-weight: 600;
 }
 
     #components-reconnect-modal button:hover {
-        background-color: #3b6ea2;
+        background-color: #095F4A;
     }
 
     #components-reconnect-modal button:active {
