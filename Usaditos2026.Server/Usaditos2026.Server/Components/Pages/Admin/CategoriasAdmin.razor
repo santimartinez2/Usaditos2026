@@ -1,0 +1,555 @@
+@page "/admin/categorias"
+@rendermode InteractiveServer
+@attribute [Authorize(Policy = AutorizacionConstantes.PoliticaSoloAdmin)]
+@layout AdminLayout
+@using Usaditos2026.Servicios.Interfaces
+@using Usaditos2026.Shared.Constantes
+@using Usaditos2026.Shared.DTOs
+@using Usaditos2026.Shared.Excepciones
+@inject IAdminCatalogoServicio AdminCatalogoServicio
+
+<PageTitle>Gestión de Categorías · Panel de Administración | Usaditos Hernando</PageTitle>
+
+<div class="admin-categorias-page">
+    <!-- Encabezado editorial -->
+    <header class="page-header mb-4">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+            <div>
+                <div class="d-inline-flex align-items-center gap-2 px-2.5 py-1 rounded-pill header-badge mb-2">
+                    <span class="live-dot" aria-hidden="true"></span>
+                    <span>Catálogo Curado • Usaditos Hernando</span>
+                </div>
+                <h1 class="page-title font-serif">Gestión de Categorías</h1>
+                <p class="page-subtitle text-muted mb-0">
+                    Organizá y clasificá las prendas infantiles de la tienda para facilitar la búsqueda a las familias con calidez y transparencia.
+                </p>
+            </div>
+            <div class="shrink-0">
+                <button type="button" class="btn btn-primary d-inline-flex align-items-center gap-2 px-3 py-2.5 shadow-sm" @onclick="IniciarNuevaCategoria">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    <span>Nueva categoría</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Avisos y Mensajes de Operación -->
+    @if (!string.IsNullOrWhiteSpace(_mensajeError))
+    {
+        <div class="alert alert-danger d-flex align-items-center justify-content-between p-3 rounded-3 mb-4 shadow-sm" role="alert">
+            <div class="d-flex align-items-center gap-2">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-danger shrink-0" aria-hidden="true">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="15" y1="9" x2="9" y2="15"></line>
+                    <line x1="9" y1="9" x2="15" y2="15"></line>
+                </svg>
+                <span>@_mensajeError</span>
+            </div>
+            <button type="button" class="btn-close" aria-label="Cerrar" @onclick="() => _mensajeError = null"></button>
+        </div>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(_mensajeExito))
+    {
+        <div class="alert alert-success d-flex align-items-center justify-content-between p-3 rounded-3 mb-4 shadow-sm" role="alert">
+            <div class="d-flex align-items-center gap-2">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-success shrink-0" aria-hidden="true">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                </svg>
+                <span>@_mensajeExito</span>
+            </div>
+            <button type="button" class="btn-close" aria-label="Cerrar" @onclick="() => _mensajeExito = null"></button>
+        </div>
+    }
+
+    <!-- Grid Principal (Panel Izquierdo: Formulario / Panel Derecho: Lista) -->
+    <div class="row g-4">
+        <!-- PANEL IZQUIERDO: Formulario de Creación / Edición (col-xl-4) -->
+        <div class="col-12 col-xl-4 d-flex flex-column gap-4">
+            <!-- Form Card -->
+            <div class="category-card p-4">
+                <div class="d-flex justify-content-between align-items-center pb-2 mb-3 border-bottom border-soft">
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="card-icon-wrap text-primary">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <h2 class="card-title font-serif m-0">
+                                @(_editandoId.HasValue ? "Editar categoría" : "Crear nueva categoría")
+                            </h2>
+                            <span class="small text-muted">
+                                @(_editandoId.HasValue ? "Modificá los datos de la categoría" : "Agregá una nueva clasificación")
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <form @onsubmit="GuardarCategoriaAsync" class="d-flex flex-column gap-3">
+                    <div>
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label for="cat-nombre" class="form-label mb-0">
+                                Nombre de la categoría <span class="text-danger">*</span>
+                            </label>
+                            <span class="small text-muted">Obligatorio</span>
+                        </div>
+                        <input id="cat-nombre"
+                               type="text"
+                               class="form-control @(string.IsNullOrWhiteSpace(_nombre) && _validado ? "is-invalid" : "")"
+                               placeholder="Ej. Abrigos y camperas"
+                               maxlength="100"
+                               @bind="_nombre" />
+                        @if (string.IsNullOrWhiteSpace(_nombre) && _validado)
+                        {
+                            <div class="invalid-feedback">El nombre es obligatorio.</div>
+                        }
+                    </div>
+
+                    <div>
+                        <label for="cat-desc" class="form-label">
+                            Descripción para las familias
+                        </label>
+                        <textarea id="cat-desc"
+                                  class="form-control"
+                                  rows="3"
+                                  placeholder="Ej. Buzos, saquitos de punto y camperitas de abrigo para media estación e invierno..."
+                                  @bind="_descripcion"></textarea>
+                        <span class="small text-muted mt-1 d-block">
+                            Visible como referencia al navegar y filtrar prendas.
+                        </span>
+                    </div>
+
+                    <!-- Cuadro de consejo -->
+                    <div class="tip-box p-2.5 rounded-3 d-flex gap-2 align-items-start">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary shrink-0 mt-0.5" aria-hidden="true">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="16" x2="12" y2="12"></line>
+                            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                        </svg>
+                        <p class="small text-muted m-0">
+                            Asegurate de usar nombres cálidos y claros que faciliten a las familias encontrar la ropa adecuada.
+                        </p>
+                    </div>
+
+                    <div class="d-flex gap-2 pt-2">
+                        <button type="submit"
+                                class="btn btn-primary flex-grow-1 py-2.5 d-inline-flex justify-content-center align-items-center gap-2 shadow-sm"
+                                disabled="@_guardando">
+                            @if (_guardando)
+                            {
+                                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                <span>Guardando...</span>
+                            }
+                            else
+                            {
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                                <span>@(_editandoId.HasValue ? "Guardar cambios" : "Guardar categoría")</span>
+                            }
+                        </button>
+
+                        @if (_editandoId.HasValue)
+                        {
+                            <button type="button"
+                                    class="btn btn-outline-secondary px-3 py-2.5"
+                                    disabled="@_guardando"
+                                    @onclick="IniciarNuevaCategoria">
+                                Cancelar
+                            </button>
+                        }
+                    </div>
+                </form>
+            </div>
+
+            <!-- Card decorativo: Inspiración de Vitrina (de Stitch) -->
+            <div class="category-card p-3 inspiration-card">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="small fw-bold text-uppercase text-muted letter-spacing-1">Inspiración de Vitrina</span>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-warning" aria-hidden="true">
+                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                    </svg>
+                </div>
+                <div class="inspiration-banner p-3 rounded-3 text-center">
+                    <p class="font-serif fst-italic m-0 text-main">
+                        “Ropita circular cuidada con historias felices.”
+                    </p>
+                    <span class="small text-muted mt-1 d-block">Moda sustentable y accesible para Hernando</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- PANEL DERECHO: Tabla de Categorías (col-xl-8) -->
+        <div class="col-12 col-xl-8 d-flex flex-column gap-3">
+            <div class="category-card overflow-hidden">
+                <!-- Toolbar de la tabla -->
+                <div class="p-3.5 border-bottom border-soft d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <h2 class="card-title font-serif m-0">Categorías Existentes</h2>
+                        <span class="badge-count">@_categorias.Count en total</span>
+                    </div>
+
+                    <div class="search-input-wrap">
+                        <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        </svg>
+                        <input type="text"
+                               class="form-control form-control-sm search-input"
+                               placeholder="Buscar categoría..."
+                               @bind="_busqueda"
+                               @bind:event="oninput" />
+                    </div>
+                </div>
+
+                <!-- Tabla de Categorías -->
+                @if (_cargando)
+                {
+                    <div class="p-5 text-center">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Cargando categorías...</span>
+                        </div>
+                        <p class="text-muted mt-2 mb-0">Cargando categorías...</p>
+                    </div>
+                }
+                else if (!CategoriasFiltradas.Any())
+                {
+                    <div class="p-5 text-center">
+                        <p class="text-muted mb-0">No se encontraron categorías con el criterio de búsqueda.</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table admin-cat-table mb-0 align-middle">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Nombre</th>
+                                    <th scope="col" class="d-none d-md-table-cell">Descripción</th>
+                                    <th scope="col" class="text-end th-acciones">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var cat in CategoriasFiltradas)
+                                {
+                                    <tr class="@(_editandoId == cat.Id ? "row-editando" : "")">
+                                        <td>
+                                            <div class="d-flex align-items-center gap-2.5">
+                                                <div class="cat-icon-circle shrink-0">
+                                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                                        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                                                    </svg>
+                                                </div>
+                                                <div class="d-flex flex-column">
+                                                    <span class="cat-nombre fw-semibold text-main">@cat.Nombre</span>
+                                                    @if (!string.IsNullOrWhiteSpace(cat.Descripcion))
+                                                    {
+                                                        <span class="d-md-none small text-muted text-truncate" style="max-width: 200px;">
+                                                            @cat.Descripcion
+                                                        </span>
+                                                    }
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="d-none d-md-table-cell text-muted small">
+                                            @(string.IsNullOrWhiteSpace(cat.Descripcion) ? "—" : cat.Descripcion)
+                                        </td>
+                                        <td class="text-end">
+                                            <div class="d-inline-flex gap-1">
+                                                <button type="button"
+                                                        class="btn btn-action"
+                                                        title="Editar categoría"
+                                                        @onclick="() => CargarParaEditar(cat)">
+                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                                    </svg>
+                                                </button>
+                                                <button type="button"
+                                                        class="btn btn-action btn-action-delete"
+                                                        title="Eliminar categoría"
+                                                        @onclick="() => PedirConfirmacionEliminar(cat)">
+                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                                        <polyline points="3 6 5 6 21 6"></polyline>
+                                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Confirmar Eliminación -->
+@if (_categoriaParaEliminar != null)
+{
+    <div class="modal-backdrop fade show" style="z-index: 1050;"></div>
+    <div class="modal fade show d-block" tabindex="-1" style="z-index: 1055;" role="dialog">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4 p-2">
+                <div class="modal-body p-4 text-center">
+                    <div class="modal-delete-icon mx-auto mb-3">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-danger" aria-hidden="true">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        </svg>
+                    </div>
+                    <h3 class="h5 font-serif text-main mb-2">¿Eliminar categoría?</h3>
+                    <p class="text-muted small mb-4">
+                        ¿Estás seguro de que querés eliminar la categoría <strong>“@_categoriaParaEliminar.Nombre”</strong>? Esta acción no se puede deshacer.
+                    </p>
+                    <div class="d-flex justify-content-center gap-2">
+                        <button type="button" class="btn btn-outline-secondary px-4 py-2" @onclick="CancelarEliminar">
+                            Cancelar
+                        </button>
+                        <button type="button" class="btn btn-danger px-4 py-2 shadow-sm" disabled="@_eliminando" @onclick="ConfirmarEliminarAsync">
+                            @if (_eliminando)
+                            {
+                                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                <span>Eliminando...</span>
+                            }
+                            else
+                            {
+                                <span>Eliminar categoría</span>
+                            }
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Modal: Aviso de Bloqueo / Categoría con Productos -->
+@if (!string.IsNullOrWhiteSpace(_avisoBloqueo))
+{
+    <div class="modal-backdrop fade show" style="z-index: 1050;"></div>
+    <div class="modal fade show d-block" tabindex="-1" style="z-index: 1055;" role="dialog">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4 p-2">
+                <div class="modal-body p-4 text-center">
+                    <div class="modal-blocked-icon mx-auto mb-3">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-danger" aria-hidden="true">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
+                        </svg>
+                    </div>
+                    <h3 class="h5 font-serif text-main mb-2">No se puede eliminar la categoría</h3>
+                    <div class="alert alert-warning py-2 px-3 small rounded-3 mb-3 text-start">
+                        <strong>@_avisoBloqueo</strong>
+                    </div>
+                    <p class="text-muted small mb-4">
+                        Para poder eliminarla, primero reasigná o eliminá todos los productos que pertenezcan a esta categoría desde el panel de productos.
+                    </p>
+                    <button type="button" class="btn btn-primary px-4 py-2 shadow-sm" @onclick="() => _avisoBloqueo = null">
+                        Entendido
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<CategoriaDto> _categorias = new();
+    private bool _cargando = true;
+    private bool _guardando = false;
+    private bool _eliminando = false;
+    private bool _validado = false;
+
+    // Estado del formulario
+    private int? _editandoId;
+    private string _nombre = string.Empty;
+    private string _descripcion = string.Empty;
+
+    // Filtro búsqueda
+    private string _busqueda = string.Empty;
+
+    // Eliminación
+    private CategoriaDto? _categoriaParaEliminar;
+    private string? _avisoBloqueo;
+
+    // Avisos
+    private string? _mensajeError;
+    private string? _mensajeExito;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarCategoriasAsync();
+    }
+
+    private async Task CargarCategoriasAsync()
+    {
+        _cargando = true;
+        _mensajeError = null;
+
+        try
+        {
+            _categorias = await AdminCatalogoServicio.ObtenerCategoriasAsync();
+        }
+        catch (Exception ex)
+        {
+            _mensajeError = $"Error al cargar las categorías: {ex.Message}";
+        }
+        finally
+        {
+            _cargando = false;
+        }
+    }
+
+    private List<CategoriaDto> CategoriasFiltradas
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(_busqueda))
+                return _categorias;
+
+            var q = _busqueda.Trim().ToLowerInvariant();
+            return _categorias.Where(c =>
+                c.Nombre.ToLowerInvariant().Contains(q) ||
+                c.Descripcion.ToLowerInvariant().Contains(q)
+            ).ToList();
+        }
+    }
+
+    private void IniciarNuevaCategoria()
+    {
+        _editandoId = null;
+        _nombre = string.Empty;
+        _descripcion = string.Empty;
+        _validado = false;
+        _mensajeError = null;
+    }
+
+    private void CargarParaEditar(CategoriaDto cat)
+    {
+        _editandoId = cat.Id;
+        _nombre = cat.Nombre;
+        _descripcion = cat.Descripcion;
+        _validado = false;
+        _mensajeError = null;
+        _mensajeExito = null;
+    }
+
+    private async Task GuardarCategoriaAsync()
+    {
+        _validado = true;
+        _mensajeError = null;
+        _mensajeExito = null;
+
+        if (string.IsNullOrWhiteSpace(_nombre))
+        {
+            _mensajeError = "El nombre de la categoría es obligatorio.";
+            return;
+        }
+
+        _guardando = true;
+
+        try
+        {
+            if (_editandoId.HasValue)
+            {
+                var request = new ModificarCategoriaRequest
+                {
+                    Nombre = _nombre.Trim(),
+                    Descripcion = _descripcion?.Trim() ?? string.Empty
+                };
+
+                await AdminCatalogoServicio.ModificarCategoriaAsync(_editandoId.Value, request);
+                _mensajeExito = $"Se modificó la categoría '{_nombre}'.";
+            }
+            else
+            {
+                var request = new CrearCategoriaRequest
+                {
+                    Nombre = _nombre.Trim(),
+                    Descripcion = _descripcion?.Trim() ?? string.Empty
+                };
+
+                await AdminCatalogoServicio.CrearCategoriaAsync(request);
+                _mensajeExito = $"Se creó la categoría '{_nombre}'.";
+            }
+
+            IniciarNuevaCategoria();
+            await CargarCategoriasAsync();
+        }
+        catch (CategoriaDuplicadaException ex)
+        {
+            _mensajeError = ex.Message;
+        }
+        catch (Exception ex)
+        {
+            _mensajeError = $"Error al guardar la categoría: {ex.Message}";
+        }
+        finally
+        {
+            _guardando = false;
+        }
+    }
+
+    private void PedirConfirmacionEliminar(CategoriaDto cat)
+    {
+        _mensajeError = null;
+        _mensajeExito = null;
+        _avisoBloqueo = null;
+        _categoriaParaEliminar = cat;
+    }
+
+    private void CancelarEliminar()
+    {
+        _categoriaParaEliminar = null;
+    }
+
+    private async Task ConfirmarEliminarAsync()
+    {
+        if (_categoriaParaEliminar == null) return;
+
+        _eliminando = true;
+        _mensajeError = null;
+        _mensajeExito = null;
+
+        try
+        {
+            var nombreCat = _categoriaParaEliminar.Nombre;
+            await AdminCatalogoServicio.EliminarCategoriaAsync(_categoriaParaEliminar.Id);
+            _categoriaParaEliminar = null;
+            _mensajeExito = $"Categoría '{nombreCat}' eliminada con éxito.";
+
+            // Si se estaba editando esta categoría, reiniciar formulario
+            if (_editandoId == _categoriaParaEliminar?.Id)
+            {
+                IniciarNuevaCategoria();
+            }
+
+            await CargarCategoriasAsync();
+        }
+        catch (CategoriaConProductosException)
+        {
+            // Mensaje requerido explícitamente por el enunciado:
+            _avisoBloqueo = "No se puede eliminar una categoría que tiene productos";
+            _categoriaParaEliminar = null;
+        }
+        catch (Exception ex)
+        {
+            _mensajeError = $"Error al eliminar la categoría: {ex.Message}";
+            _categoriaParaEliminar = null;
+        }
+        finally
+        {
+            _eliminando = false;
+        }
+    }
+}

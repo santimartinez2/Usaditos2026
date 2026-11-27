@@ -1,0 +1,247 @@
+/* Estilos de Gestión de Categorías Admin */
+.admin-categorias-page {
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+/* Encabezado */
+.header-badge {
+    background-color: var(--brand-primary-soft);
+    color: var(--brand-primary);
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.live-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: var(--brand-primary);
+    animation: pulse-dot 2s infinite ease-in-out;
+}
+
+@keyframes pulse-dot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.85); }
+}
+
+.page-title {
+    font-size: 1.85rem;
+    font-weight: 700;
+    color: var(--text-main);
+    letter-spacing: -0.02em;
+    margin-bottom: 0.25rem;
+}
+
+.page-subtitle {
+    font-size: 0.95rem;
+    color: var(--text-muted);
+}
+
+/* Tarjetas */
+.category-card {
+    background-color: #FFFFFF;
+    border: 1px solid var(--border-soft);
+    border-radius: 16px;
+    box-shadow: 0 2px 10px rgba(20, 52, 43, 0.03);
+}
+
+.card-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+.card-icon-wrap {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background-color: var(--brand-primary-soft);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.form-label {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.form-control {
+    border-radius: 10px;
+    border: 1px solid var(--border-soft);
+    font-size: 0.875rem;
+    color: var(--text-main);
+    background-color: #FAF8F2;
+    transition: all 0.15s ease-in-out;
+}
+
+.form-control:focus {
+    background-color: #FFFFFF;
+    border-color: var(--brand-primary);
+    box-shadow: 0 0 0 3px rgba(11, 122, 94, 0.15);
+}
+
+.tip-box {
+    background-color: #FAF8F2;
+    border: 1px solid var(--border-soft);
+}
+
+/* Inspiration Card */
+.inspiration-card {
+    background: linear-gradient(180deg, #FFFFFF 0%, #FAF8F2 100%);
+}
+
+.inspiration-banner {
+    background-color: var(--brand-primary-soft);
+    border: 1px dashed rgba(11, 122, 94, 0.3);
+}
+
+.letter-spacing-1 {
+    letter-spacing: 0.08em;
+}
+
+/* Toolbar de Tabla */
+.badge-count {
+    padding: 0.25rem 0.65rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    background-color: var(--brand-primary-soft);
+    color: var(--brand-primary);
+}
+
+.search-input-wrap {
+    position: relative;
+    width: 100%;
+    max-width: 260px;
+}
+
+.search-icon {
+    position: absolute;
+    left: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    pointer-events: none;
+}
+
+.search-input {
+    padding-left: 2.2rem;
+    border-radius: 10px;
+}
+
+/* Tabla de Categorías */
+.admin-cat-table {
+    margin-bottom: 0;
+}
+
+.admin-cat-table thead {
+    background-color: #FAF8F2;
+    border-bottom: 1px solid var(--border-soft);
+}
+
+.admin-cat-table th {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    padding: 1rem 1.25rem;
+    border: none;
+}
+
+.admin-cat-table td {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid #F5F1E6;
+    color: var(--text-main);
+}
+
+.admin-cat-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.admin-cat-table tbody tr {
+    transition: background-color 0.15s ease-in-out;
+}
+
+.admin-cat-table tbody tr:hover {
+    background-color: #FBF9F3;
+}
+
+.admin-cat-table tbody tr.row-editando {
+    background-color: #EFF9F4;
+    border-left: 3px solid var(--brand-primary);
+}
+
+.cat-icon-circle {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background-color: #FAF8F2;
+    border: 1px solid var(--border-soft);
+    color: var(--brand-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.cat-nombre {
+    font-size: 0.9375rem;
+}
+
+.th-acciones {
+    width: 110px;
+}
+
+/* Botones de Acción */
+.btn-action {
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    border: 1px solid var(--border-soft);
+    background-color: #FFFFFF;
+    color: var(--text-muted);
+    transition: all 0.15s ease-in-out;
+}
+
+.btn-action:hover {
+    color: var(--brand-primary);
+    background-color: var(--brand-primary-soft);
+    border-color: var(--brand-primary);
+}
+
+.btn-action-delete:hover {
+    color: var(--color-error);
+    background-color: #FCE8E6;
+    border-color: rgba(200, 69, 58, 0.3);
+}
+
+/* Modales */
+.modal-delete-icon, .modal-blocked-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-delete-icon {
+    background-color: #FCE8E6;
+}
+
+.modal-blocked-icon {
+    background-color: #FFF3CD;
+}
+
+.border-soft {
+    border-color: var(--border-soft) !important;
+}
