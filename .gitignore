@@ -363,4 +363,4 @@ MigrationBackup/
 FodyWeavers.xsd
 
 # Imágenes de productos subidas por los administradores
-App_Data/uploads/productos/
+**/App_Data/uploads/productos/
